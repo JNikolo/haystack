@@ -6,7 +6,7 @@ Gathering insights from business documents is very time consuming, and exahustin
 
 First make sure to install the requirements running the code:
 ```
-pip freeze -r requirements.txt
+pip install -r requirements.txt
 ```
 
 After the dependencies are installed, run the command:
