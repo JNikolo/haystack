@@ -1,0 +1,18 @@
+.footer-container {
+    width: 100vw;
+    height: 10vh;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: black; 
+    margin-top: 0;
+}
+
+.IQSpatialogo {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    height: 5%;
+    padding: 0 20px; 
+}
