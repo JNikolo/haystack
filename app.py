@@ -38,6 +38,16 @@ from langchain_community.document_loaders import PyMuPDFLoader
 #For gemini
 import google.generativeai as genai
 
+#NLP libs
+import nltk
+import csv
+from PyPDF2 import PdfReader
+from nltk.tokenize import sent_tokenize
+import requests
+import tempfile
+import shutil
+import pandas as pd
+
 #Configure gemini api
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 genai.configure(api_key=GOOGLE_API_KEY)
@@ -46,7 +56,7 @@ genai.configure(api_key=GOOGLE_API_KEY)
 app = FastAPI()
 
 #################################################### SUBMITING PDFS ####################################################
-def sumbit_docs():
+def submit_docs_for_rag():
     directory_path = "/pdfs" ########## Directory that contains the pdf docs #############
 
     pdfs = []
@@ -105,11 +115,54 @@ def sumbit_docs():
     pprint.pprint(merged_documents)
 
     return merged_documents
+########################################################################################################################
 
+######################################################### NLPS #########################################################
+def search_keyword_in_pdfs(pdf_files, keyword):
+    keyword_counts = []  # List to store keyword counts per file
+    total = 0
+
+    for pdf_file in pdf_files:
+        with open(pdf_file, "rb") as pdf:
+            reader = PdfReader(pdf)
+            page_num = 1  # Variable to keep track of the page number
+
+            for page in reader.pages:
+                page_text = page.extract_text()
+
+                if page_text:  # Checking if text extraction is successful
+                    keyword_count = 0
+                    sentences = sent_tokenize(page_text)
+                    context_sent = []
+
+                    for j, sentence in enumerate(sentences):
+                        sentence_lower = sentence.lower()
+                        if keyword.lower() in sentence_lower:
+                            keyword_count += sentence_lower.count(keyword.lower())
+
+                            prev_sentence = sentences[j - 1] if j > 0 else ''
+                            next_sentence = sentences[j + 1] if j < len(sentences) - 1 else ''
+                            context = f"{prev_sentence} {sentence} {next_sentence}".strip()
+                            context_sent.append(context)
+
+                    if keyword_count > 0:
+                        # Store metadata and keyword count
+                        metadata = {'filename': pdf_file, 'page': page_num, 'Sources': context_sent}
+                        count_dict = {'keyword': keyword, 'count': keyword_count, 'metadata': metadata.copy()}
+                        keyword_counts.append(count_dict)
+                        count = count_dict['count']
+                        total += count
+
+                page_num += 1  # Increase page number
+
+
+
+    print("Keyword total count:", total)
+    return keyword_counts
 ########################################################################################################################
 
 ####################################################### RAG QA #########################################################
-def Haystack_qa(merged_documents, query):
+def Haystack_qa(merged_documents, query: str):
     # Hugging Face model for embeddings.
     model_name = "sentence-transformers/all-MiniLM-L6-v2"
     model_kwargs = {'device': 'cpu'}
@@ -179,6 +232,12 @@ def Haystack_qa(merged_documents, query):
     )
     return rag_chain.invoke(query)
 ########################################################################################################################
+
+# 1 to 1 and 1 to many
+# 1 query for 1 doc and 1 query for multiple docs separately
+# Grab all the data from the NLP and put them into a csv file
+# Topic modeling important
+# Allow users to choose chunk sizes maybe?
 
 #defining the routes
 
