@@ -1,11 +1,11 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile
 
 #useful libraries
 import requests
 import sys
 from icecream import ic
 import pprint
-#from PyPDF2 import PdfReader
+from pypdf import PdfReader
 import os
 import pymupdf
 
@@ -223,3 +223,23 @@ def read_item(query: str, top_k: int):
         dict: A dictionary containing the query and top_k parameters.
     """
     return {"q": query, "top_k": top_k}
+
+@app.post("/uploadfiles/")
+async def create_upload_files(files: list[UploadFile]):
+    """
+    Extracts text from the first page of a PDF file. Allows multiple files to be uploaded (not at once)
+
+    Args:
+        files (list[UploadFile]): A list of UploadFile objects representing the uploaded files.
+
+    Returns:
+        dict: A dictionary containing the status and extracted text.
+            - If the PDF file is successfully processed, the status will be "success" and the extracted text will be returned.
+            - If the PDF file is empty or cannot be processed, the status will be "wump wump" and a default text will be returned.
+    """
+    doc = PdfReader(files[0].file)
+    if doc:
+        return {"status": "success", "text": doc.pages[0].extract_text()}
+    else:
+        return {"status": "wump wump", "text": "empty"}
+
