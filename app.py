@@ -56,65 +56,31 @@ genai.configure(api_key=GOOGLE_API_KEY)
 app = FastAPI()
 
 #################################################### SUBMITING PDFS ####################################################
-def submit_docs_for_rag():
-    directory_path = "/pdfs" ########## Directory that contains the pdf docs #############
+def submit_docs_for_rag(submitted_pdf, pdf_directory):
+    directory_path = pdf_directory
+    pdf = submitted_pdf
 
-    pdfs = []
-    for file in os.listdir(directory_path):
-        if file.endswith(".pdf"):
-            pdfs.append(file)
-    # Load the TXT.
+    # Load the pdf.
     loaders = []
-    for pdf in pdfs:
-        loader = PyMuPDFLoader(directory_path + "/" + pdf)
-        loaders.append(loader)
+    loader = PyMuPDFLoader(directory_path + "/" + pdf)
+    loaders.append(loader)
 
     print("len(loaders) =", len(loaders))
 
-    data = []
-    for loader in loaders:
-        data.append(loader.load())
+    data = loader.load()
 
     print("len(data) =", len(data), "\n")
 
     # Initialize the text splitter
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
 
-    docs = []
-    for doc in data:
-        chunk = text_splitter.split_documents(doc)
-        docs.append(chunk)
+    docs = text_splitter.split_documents(data)
 
-    # Debugging purposes.
-    # Print the number of total documents to be stored in the vector database.
-    total = 0
-    for i in range(len(docs)):
-        if i == len(docs) - 1:
-            print(len(docs[i]), end="")
-        else:
-            print(len(docs[i]), "+ " ,end="")
-        total += len(docs[i])
-    print(" =", total, " total documents\n")
-
-    # Print the first document.
-    pprint.pprint(docs[0])
+    # Print the document.
     print("\n\n\n")
+    pprint.pprint(docs)
 
-    # Print the total number of PDF files.
-    # docs is a list of lists where each list stores all the documents for one PDF file.
-    print(len(docs))
-
-    # Merge the documents to be embededed and store them in the vector database.
-    merged_documents = []
-
-    for doc in docs:
-        merged_documents.extend(doc)
-
-    # Print the merged list of all the documents.
-    print("len(merged_documents) =", len(merged_documents))
-    pprint.pprint(merged_documents)
-
-    return merged_documents
+    return docs
 ########################################################################################################################
 
 ######################################################### NLPS #########################################################
@@ -161,8 +127,9 @@ def search_keyword_in_pdfs(pdf_files, keyword):
     return keyword_counts
 ########################################################################################################################
 
-####################################################### RAG QA #########################################################
-def Haystack_qa(merged_documents, query: str):
+#################################################### RAG QA 1 TO 1 #####################################################
+def Haystack_qa_1(chosen_pdf, pdf_directory, query: str):
+    pdf = submit_docs_for_rag(chosen_pdf, pdf_directory)
     # Hugging Face model for embeddings.
     model_name = "sentence-transformers/all-MiniLM-L6-v2"
     model_kwargs = {'device': 'cpu'}
@@ -176,12 +143,12 @@ def Haystack_qa(merged_documents, query: str):
     client = weaviate.Client(
     embedded_options = EmbeddedOptions()
     )
-
+    print(f"Creating vector store for {len(pdf)} chunks")
     # Initialize the Weaviate vector search with the document segments.
     # Create a vector store (database) named vector_search from the sample documents.
     vector_search = Weaviate.from_documents(
         client = client,
-        documents = merged_documents,
+        documents = pdf,
         embedding = embeddings,
         by_text = False
     )
@@ -191,6 +158,14 @@ def Haystack_qa(merged_documents, query: str):
         search_type = "similarity", 
         search_kwargs = {"k": 10, "score_threshold": 0.89}
     )
+
+    # Retrieve documents
+    print(f"Retrieved documents for PDF:")
+    pprint.pprint(retriever)
+
+    # Check if retrieved_docs is empty
+    if not retriever:
+        print(f"No relevant documents found for PDF")
 
     # Define a prompt template.
     # LangChain passes these documents to the {context} input variable and the user's query to the {question} variable.
@@ -206,22 +181,16 @@ def Haystack_qa(merged_documents, query: str):
     custom_rag_prompt = ChatPromptTemplate.from_template(template)
 
     # Model settings
-    generation_config = {
-    "temperature": 0.9, # Increasing the temperature, the model becomes more creative and takes longer for inference.
-    "top_p": 1,
-    "top_k": 1,
-    "max_output_tokens": 2048,
-    }
+    generation_config = {"temperature": 0.9, # Increasing the temperature, the model becomes more creative and takes longer for inference.
+    "top_p": 1, "top_k": 1, "max_output_tokens": 2048}
 
-    llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash",
-                                generation_config=generation_config,
+    llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", generation_config=generation_config,
                                 safety_settings={
                                     HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
                                     HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
                                     HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
                                     HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE
-                                }
-                                )
+                                })
     # RAG chain
     rag_chain = (
         {"context": retriever,  "question": RunnablePassthrough()}
@@ -230,7 +199,93 @@ def Haystack_qa(merged_documents, query: str):
         # | hf
         | StrOutputParser()
     )
-    return rag_chain.invoke(query)
+    reply = rag_chain.invoke(query)
+    print("RAG REPLY:" + reply)
+    return reply
+########################################################################################################################
+
+################################################## RAG QA 1 TO MANY ####################################################
+def Haystack_qa_many(pdf_directory, query: str):
+    pdfs = []
+    replies = []
+    for file in os.listdir(pdf_directory):
+        if file.endswith(".pdf"):
+            #Separately chunks all pdfs individually so that they can be embedded individually
+            pdfs.append(submit_docs_for_rag(file, pdf_directory)) 
+    # Hugging Face model for embeddings.
+    model_name = "sentence-transformers/all-MiniLM-L6-v2"
+    model_kwargs = {'device': 'cpu'}
+    # model_kwargs = {'device': 'cuda'}
+    embeddings = HuggingFaceEmbeddings(
+        model_name=model_name,
+        model_kwargs=model_kwargs,
+    )
+
+    # Create Weaviate vector store (database).
+    client = weaviate.Client(
+    embedded_options = EmbeddedOptions()
+    )
+    for i, pdf in enumerate(pdfs):
+        print(f"Creating vector store for {len(pdf)} chunks")
+        # Initialize the Weaviate vector search with the document segments.
+        # Create a vector store (database) named vector_search from the sample documents.
+        vector_search = Weaviate.from_documents(
+            client = client,
+            documents = pdf,
+            embedding = embeddings,
+            by_text = False
+        )
+
+        # Vector Search retreiver
+        retriever = vector_search.as_retriever(
+            search_type = "similarity", 
+            search_kwargs = {"k": 10, "score_threshold": 0.89}
+        )
+
+        # Retrieve documents
+        print(f"Retrieved documents for PDF {i + 1}:")
+        pprint.pprint(retriever)
+
+        # Check if retrieved_docs is empty
+        if not retriever:
+            print(f"No relevant documents found for PDF {i + 1}")
+
+        # Define a prompt template.
+        # LangChain passes these documents to the {context} input variable and the user's query to the {question} variable.
+        template = """
+        You are looking for the specified keywords and answering questions based on the keywords.
+        Use the following pieces of retrieved context to answer the question at the end.
+        If you don't know the answer, just say that you don't know.
+
+        Context: {context}
+
+        Question: {question}
+        """
+        custom_rag_prompt = ChatPromptTemplate.from_template(template)
+
+        # Model settings
+        generation_config = {"temperature": 0.9, # Increasing the temperature, the model becomes more creative and takes longer for inference.
+        "top_p": 1, "top_k": 1, "max_output_tokens": 2048}
+
+        llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", generation_config=generation_config,
+                                    safety_settings={
+                                        HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                                        HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                                        HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                                        HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE
+                                    })
+        # RAG chain
+        rag_chain = (
+            {"context": retriever,  "question": RunnablePassthrough()}
+            | custom_rag_prompt
+            | llm
+            # | hf
+            | StrOutputParser()
+        )
+        reply = rag_chain.invoke(query)
+        print("RAG REPLY:" + reply)
+        replies.append(reply)
+    return replies
 ########################################################################################################################
 
 # 1 to 1 and 1 to many
