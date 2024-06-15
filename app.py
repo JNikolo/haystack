@@ -1,5 +1,5 @@
 from fastapi import FastAPI, UploadFile
-
+from typing import List, Any, Dict, Tuple
 #useful libraries
 import requests
 import sys
@@ -41,17 +41,18 @@ import google.generativeai as genai
 #NLP libs
 import nltk
 import csv
-from PyPDF2 import PdfReader
 from nltk.tokenize import sent_tokenize
-import requests
 import tempfile
 import shutil
 import pandas as pd
+import spacy
+from collections import Counter
+
 
 #Configure gemini api
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 genai.configure(api_key=GOOGLE_API_KEY)
-
+nltk.download('punkt')
 #creating an instance of FastAPI
 app = FastAPI()
 
@@ -84,47 +85,81 @@ def submit_docs_for_rag(submitted_pdf, pdf_directory):
 ########################################################################################################################
 
 ######################################################### NLPS #########################################################
-def search_keyword_in_pdfs(pdf_files, keyword):
-    keyword_counts = []  # List to store keyword counts per file
-    total = 0
+async def search_keyword_in_pdfs(pdf_files: List[UploadFile], keyword: str) -> Tuple[List[Dict[str, Any]], int]:
+    """
+    Searches for a keyword in a list of PDF files and returns the keyword counts and total count.
+
+    Args:
+        pdf_files (List[UploadFile]): A list of UploadFile objects representing the PDF files to search.
+        keyword (str): The keyword to search for.
+
+    Returns:
+        Tuple[List[Dict[str, Any]], int]: A tuple containing the keyword counts per file and the total count.
+            - keyword_counts (List[Dict[str, Any]]): A list of dictionaries containing the keyword count, metadata, and page number for each file.
+            - total (int): The total count of the keyword across all files.
+    """
+    
+    keyword_counts = [] # List to store keyword counts per file
+    total = 0  
 
     for pdf_file in pdf_files:
-        with open(pdf_file, "rb") as pdf:
-            reader = PdfReader(pdf)
-            page_num = 1  # Variable to keep track of the page number
+        
+        reader = PdfReader(pdf_file.file)
+        page_num = 1  # Variable to keep track of the page number
 
-            for page in reader.pages:
-                page_text = page.extract_text()
+        for page in reader.pages:
+            page_text = page.extract_text()
 
-                if page_text:  # Checking if text extraction is successful
-                    keyword_count = 0
-                    sentences = sent_tokenize(page_text)
-                    context_sent = []
+            if page_text:  # Checking if text extraction is successful
+                keyword_count = 0
+                sentences = sent_tokenize(page_text)
+                context_sent = []
 
-                    for j, sentence in enumerate(sentences):
-                        sentence_lower = sentence.lower()
-                        if keyword.lower() in sentence_lower:
-                            keyword_count += sentence_lower.count(keyword.lower())
+                for j, sentence in enumerate(sentences):
+                    sentence_lower = sentence.lower()
+                    if keyword.lower() in sentence_lower:
+                        keyword_count += sentence_lower.count(keyword.lower())
 
-                            prev_sentence = sentences[j - 1] if j > 0 else ''
-                            next_sentence = sentences[j + 1] if j < len(sentences) - 1 else ''
-                            context = f"{prev_sentence} {sentence} {next_sentence}".strip()
-                            context_sent.append(context)
+                        prev_sentence = sentences[j - 1] if j > 0 else ''
+                        next_sentence = sentences[j + 1] if j < len(sentences) - 1 else ''
+                        context = f"{prev_sentence} {sentence} {next_sentence}".strip()
+                        context_sent.append(context)
 
-                    if keyword_count > 0:
-                        # Store metadata and keyword count
-                        metadata = {'filename': pdf_file, 'page': page_num, 'Sources': context_sent}
-                        count_dict = {'keyword': keyword, 'count': keyword_count, 'metadata': metadata.copy()}
-                        keyword_counts.append(count_dict)
-                        count = count_dict['count']
-                        total += count
+                if keyword_count > 0:
+                    # Store metadata and keyword count
+                    metadata = {'filename': pdf_file.filename, 'page': page_num, 'Sources': context_sent}
+                    count_dict = {'keyword': keyword, 'count': keyword_count, 'metadata': metadata.copy()}
+                    keyword_counts.append(count_dict)
+                    total += keyword_count
 
-                page_num += 1  # Increase page number
+            page_num += 1  # Increase page number
+
+    return keyword_counts, total
+
+def concepts_frequencies(pdf_file: UploadFile):
+    nlp = spacy.load("en_core_web_sm")
+
+    # Sample text
+    text = ''
+
+    reader = PdfReader(pdf_file.file)
+    for page in reader.pages:
+        page_text = page.extract_text()
+        if page_text:  # Checking if text extraction is successful
+            text += page_text.lower()
+
+    # Process the text with spaCy
+    doc = nlp(text)
+
+    # Extract nouns (or other POS you're interested in)
+    concepts = [token.text for token in doc if token.pos_ == "NOUN"]
+
+    # Count the frequency of each concept
+    concept_counter = Counter(concepts)
+
+    return concept_counter
 
 
-
-    print("Keyword total count:", total)
-    return keyword_counts
 ########################################################################################################################
 
 #################################################### RAG QA 1 TO 1 #####################################################
@@ -341,19 +376,54 @@ def read_item(query: str, top_k: int):
 @app.post("/uploadfiles/")
 async def create_upload_files(files: list[UploadFile]):
     """
-    Extracts text from the first page of a PDF file. Allows multiple files to be uploaded (not at once)
+    Extracts text from PDF files and saves them as text files.
 
     Args:
-        files (list[UploadFile]): A list of UploadFile objects representing the uploaded files.
+        files (list[UploadFile]): A list of UploadFile objects representing the PDF files to process.
 
     Returns:
-        dict: A dictionary containing the status and extracted text.
-            - If the PDF file is successfully processed, the status will be "success" and the extracted text will be returned.
-            - If the PDF file is empty or cannot be processed, the status will be "wump wump" and a default text will be returned.
+        dict: A dictionary containing the status and message of the extraction process.
+            - If the extraction is successful, the status will be "success" and the message will be "Text extracted successfully."
+            - If an error occurs during the extraction, the status will be "fail" and the message will contain the error details.
     """
-    doc = PdfReader(files[0].file)
-    if doc:
-        return {"status": "success", "text": doc.pages[0].extract_text()}
-    else:
-        return {"status": "wump wump", "text": "empty"}
+    try:
+        for file in files:
+            reader = PdfReader(file.file)
+            text = ""
+            for page_num in range(len(reader.pages)):
+                text += reader.pages[page_num].extract_text()
+            # Save the extracted text to a .txt file
+            # For now it is saved in the "texts" directory
+            # Eventually, we will need to store it in a database or file system
+            output_filename = "texts/" + file.filename.replace(".pdf", ".txt")
+            with open(output_filename, "w", encoding="utf-8") as txt_file:
+                txt_file.write(text)
+        return {"status": "success", "message": "Text extracted successfully."}
+    except Exception as e:
+        return {"status": "fail", "message": f"Failed to extract text. Error ocurred: {e}"}
 
+@app.post("/searchkeyword/{keyword}")
+async def search_keyword(files: List[UploadFile], keyword: str) -> Dict[str, Any]:
+    """
+    Searches for a keyword in a list of uploaded files.
+
+    Args:
+        files (List[UploadFile]): A list of uploaded files to search in.
+        keyword (str): The keyword to search for.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the search results.
+            - "status": The status of the search ("success" or "fail").
+            - "keyword": The keyword that was searched for.
+            - "total": The total number of occurrences of the keyword in the files.
+            - "results": A dictionary containing the keyword counts for each file.
+
+    Raises:
+        Exception: If an error occurs during the search.
+
+    """
+    try:
+        keyword_counts, total = await search_keyword_in_pdfs(files, keyword)
+        return {"status":"success", "keyword": keyword, "total": total, "results": keyword_counts}
+    except Exception as e:
+        return {"status":"fail", "keyword": keyword, "message": f"Failed to search for keyword. Error ocurred: {e}"}
