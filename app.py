@@ -52,7 +52,7 @@ from collections import Counter
 #Configure gemini api
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 genai.configure(api_key=GOOGLE_API_KEY)
-nltk.download('punkt')
+
 #creating an instance of FastAPI
 app = FastAPI()
 
@@ -85,6 +85,10 @@ def submit_docs_for_rag(submitted_pdf, pdf_directory):
 ########################################################################################################################
 
 ######################################################### NLPS #########################################################
+
+NLP = spacy.load("en_core_web_sm")
+nltk.download('punkt')
+
 async def search_keyword_in_pdfs(pdf_files: List[UploadFile], keyword: str) -> Tuple[List[Dict[str, Any]], int]:
     """
     Searches for a keyword in a list of PDF files and returns the keyword counts and total count.
@@ -136,28 +140,34 @@ async def search_keyword_in_pdfs(pdf_files: List[UploadFile], keyword: str) -> T
 
     return keyword_counts, total
 
-def concepts_frequencies(pdf_file: UploadFile):
-    nlp = spacy.load("en_core_web_sm")
+async def concepts_frequencies_in_pdfs(pdf_files: List[UploadFile]) -> Dict[str,int]:
+    
+    concept_counter = Counter()
 
-    # Sample text
-    text = ''
+    for pdf_file in pdf_files:
+        # Sample text
+        text = ''
 
-    reader = PdfReader(pdf_file.file)
-    for page in reader.pages:
-        page_text = page.extract_text()
-        if page_text:  # Checking if text extraction is successful
-            text += page_text.lower()
+        reader = PdfReader(pdf_file.file)
+        for page in reader.pages:
+            page_text = page.extract_text()
+            if page_text:  # Checking if text extraction is successful
+                text += page_text.lower()
 
-    # Process the text with spaCy
-    doc = nlp(text)
+        # Process the text with spaCy
+        doc = NLP(text)
 
-    # Extract nouns (or other POS you're interested in)
-    concepts = [token.text for token in doc if token.pos_ == "NOUN"]
+        # Extract nouns (or other POS you're interested in)
+        concepts = [token.text for token in doc if token.pos_ == "NOUN"]
 
-    # Count the frequency of each concept
-    concept_counter = Counter(concepts)
+        # Count the frequency of each concept
+        concept_counter.update(concepts)
+    
+    #filtered_concepts = {concept: freq for concept, freq in concept_counter.items() if freq > 5}
+    filtered_concepts = {concept: freq for concept, freq in concept_counter.most_common(20)}
+    sorted_concept_freq = dict(sorted(filtered_concepts.items(), key=lambda item: item[1], reverse=True))
 
-    return concept_counter
+    return sorted_concept_freq
 
 
 ########################################################################################################################
@@ -402,7 +412,7 @@ async def create_upload_files(files: list[UploadFile]):
     except Exception as e:
         return {"status": "fail", "message": f"Failed to extract text. Error ocurred: {e}"}
 
-@app.post("/searchkeyword/{keyword}")
+@app.post("/searchkeyword/")
 async def search_keyword(files: List[UploadFile], keyword: str) -> Dict[str, Any]:
     """
     Searches for a keyword in a list of uploaded files.
@@ -427,3 +437,12 @@ async def search_keyword(files: List[UploadFile], keyword: str) -> Dict[str, Any
         return {"status":"success", "keyword": keyword, "total": total, "results": keyword_counts}
     except Exception as e:
         return {"status":"fail", "keyword": keyword, "message": f"Failed to search for keyword. Error ocurred: {e}"}
+
+@app.post("/conceptsfrequencies/")
+async def concept_frequencies(files: List[UploadFile]):
+
+    try:
+        concept_counter = await concepts_frequencies_in_pdfs(files)
+        return {"status": "success", "concepts": dict(concept_counter)}
+    except Exception as e:
+        return {"status": "fail", "message": f"Failed to extract concepts. Error ocurred: {e}"}
