@@ -9,6 +9,8 @@ from pypdf import PdfReader
 import os
 import pymupdf
 
+from dotenv import load_dotenv
+
 #Embeddings temp
 import weaviate
 from weaviate.embedded import EmbeddedOptions
@@ -22,16 +24,18 @@ from langchain_google_genai import (
     HarmCategory,
 
 )
-from langchain_community.embeddings import HuggingFaceEmbeddings
+#from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.llms import HuggingFacePipeline
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain.document_loaders import TextLoader
-from langchain.embeddings import OpenAIEmbeddings
+from langchain_community.document_loaders import TextLoader
+from langchain_community.embeddings import OpenAIEmbeddings
 from langchain.prompts import ChatPromptTemplate
 from langchain.schema.runnable import RunnablePassthrough
 from langchain.schema.output_parser import StrOutputParser
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.vectorstores import Weaviate
+from langchain_community.vectorstores import Weaviate
+from langchain_community.vectorstores import MongoDBAtlasVectorSearch
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 from langchain_community.document_loaders import PyMuPDFLoader
 
@@ -48,10 +52,42 @@ import pandas as pd
 import spacy
 from collections import Counter
 
+from pymongo import MongoClient
+
+load_dotenv()
 
 #Configure gemini api
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 genai.configure(api_key=GOOGLE_API_KEY)
+
+MONGO_URI = os.getenv('MONGO_URI')
+cluster = MongoClient(MONGO_URI)
+
+DB_NAME = 'pdfs'
+COLLECTION_NAME = 'pdfs_collection'
+NAMESPACE = 'pdfs.pdfs_collection'
+
+
+MONGODB_COLLECTION = cluster[DB_NAME][COLLECTION_NAME]
+vector_search_index = "vector_index"
+
+# Hugging Face model for embeddings.
+model_name = "sentence-transformers/all-MiniLM-L6-v2"
+model_kwargs = {'device': 'cpu'}
+# model_kwargs = {'device': 'cuda'}
+embeddings = HuggingFaceEmbeddings(
+    model_name=model_name,
+    model_kwargs=model_kwargs,
+)
+
+
+VECTOR_STORE = MongoDBAtlasVectorSearch.from_connection_string(
+    connection_string = MONGO_URI,
+    namespace = NAMESPACE,
+    embedding = embeddings,
+    index_name = vector_search_index
+)
+
 
 #creating an instance of FastAPI
 app = FastAPI()
@@ -75,13 +111,15 @@ def submit_docs_for_rag(submitted_pdf, pdf_directory):
     # Initialize the text splitter
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
 
-    docs = text_splitter.split_documents(data)
+    docs = text_splitter.split_documents(data)#, metadatas = [{'doc_id' : 1}])
+    doc_content = [doc.page_content for doc in docs]
+    print(doc_content)
 
     # Print the document.
-    print("\n\n\n")
-    pprint.pprint(docs)
+ #   print("\n\n\n")
+ #   pprint.pprint(docs)
 
-    return docs
+    return doc_content
 ########################################################################################################################
 
 ######################################################### NLPS #########################################################
@@ -175,31 +213,22 @@ async def concepts_frequencies_in_pdfs(pdf_files: List[UploadFile]) -> Dict[str,
 #################################################### RAG QA 1 TO 1 #####################################################
 def Haystack_qa_1(chosen_pdf, pdf_directory, query: str):
     pdf = submit_docs_for_rag(chosen_pdf, pdf_directory)
-    # Hugging Face model for embeddings.
-    model_name = "sentence-transformers/all-MiniLM-L6-v2"
-    model_kwargs = {'device': 'cpu'}
-    # model_kwargs = {'device': 'cuda'}
-    embeddings = HuggingFaceEmbeddings(
-        model_name=model_name,
-        model_kwargs=model_kwargs,
-    )
 
     # Create Weaviate vector store (database).
-    client = weaviate.Client(
-    embedded_options = EmbeddedOptions()
-    )
+#    client = weaviate.Client(
+#    embedded_options = EmbeddedOptions()
+#    )
     print(f"Creating vector store for {len(pdf)} chunks")
-    # Initialize the Weaviate vector search with the document segments.
-    # Create a vector store (database) named vector_search from the sample documents.
-    vector_search = Weaviate.from_documents(
-        client = client,
-        documents = pdf,
-        embedding = embeddings,
-        by_text = False
+  
+
+    # Add to Mongo Vector Store
+    VECTOR_STORE.add_texts(
+        texts = pdf,
+        metadatas = [{'user_id': 36, 'doc_id' : 224} for i in pdf]
     )
 
     # Vector Search retreiver
-    retriever = vector_search.as_retriever(
+    retriever = VECTOR_STORE.as_retriever(
         search_type = "similarity", 
         search_kwargs = {"k": 10, "score_threshold": 0.89}
     )
@@ -446,3 +475,9 @@ async def concept_frequencies(files: List[UploadFile]):
         return {"status": "success", "concepts": dict(concept_counter)}
     except Exception as e:
         return {"status": "fail", "message": f"Failed to extract concepts. Error ocurred: {e}"}
+    
+
+#Haystack_qa_1("OWASP Application Security Verification Standard 4.0.3-en.pdf", "pdfs", "Keyword search: Authorization")
+
+#submit_docs_for_rag("OWASP Application Security Verification Standard 4.0.3-en.pdf", "pdfs")
+#MONGODB_COLLECTION.delete_many({})
