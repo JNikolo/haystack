@@ -1,9 +1,14 @@
+body, html {
+  background-color: black;
+}
+
 .home-content {
     display: flex;
     flex-direction: column; /* Arrange items in a column */
     justify-content: center; /* Center content vertically */
     align-items: center;     /* Center content horizontally */
     text-align: center;
+    color: white;
   }
   
   .homelogo {

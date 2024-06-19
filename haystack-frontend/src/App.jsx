@@ -3,7 +3,6 @@ import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Home from './pages/Home';
 import SignIn from './pages/SignIn';
-import CreateAccount from './pages/CreateAccount';
 import './App.css';
 
 function App() {
@@ -12,7 +11,6 @@ function App() {
       <Routes>
         <Route path="/" element={<Home/>} />
         <Route path="/signin" element={<SignIn/>} />
-        <Route path="/createaccount" element={<CreateAccount/>} />
       </Routes>
     </Router>
   );
