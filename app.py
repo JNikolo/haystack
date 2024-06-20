@@ -1,6 +1,10 @@
+import base64
 from fastapi import FastAPI, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Any, Dict, Tuple
+
 #useful libraries
+from fastapi.responses import HTMLResponse
 import requests
 import sys
 from icecream import ic
@@ -24,8 +28,8 @@ from langchain_google_genai import (
     HarmCategory,
 
 )
-#from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
+#from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.llms import HuggingFacePipeline
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_community.document_loaders import TextLoader
@@ -51,6 +55,9 @@ import shutil
 import pandas as pd
 import spacy
 from collections import Counter
+import seaborn as sns
+from matplotlib.figure import Figure
+from io import BytesIO
 
 from pymongo import MongoClient
 
@@ -91,6 +98,19 @@ VECTOR_STORE = MongoDBAtlasVectorSearch.from_connection_string(
 
 #creating an instance of FastAPI
 app = FastAPI()
+origins = [
+    "http://localhost:5173",
+    "localhost:5173"
+]
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
 
 #################################################### SUBMITING PDFS ####################################################
 def submit_docs_for_rag(submitted_pdf, pdf_directory):
@@ -178,7 +198,7 @@ async def search_keyword_in_pdfs(pdf_files: List[UploadFile], keyword: str) -> T
 
     return keyword_counts, total
 
-async def concepts_frequencies_in_pdfs(pdf_files: List[UploadFile]) -> Dict[str,int]:
+async def concepts_frequencies_in_pdfs(pdf_files: List[UploadFile]):
     
     concept_counter = Counter()
 
@@ -204,8 +224,33 @@ async def concepts_frequencies_in_pdfs(pdf_files: List[UploadFile]) -> Dict[str,
     #filtered_concepts = {concept: freq for concept, freq in concept_counter.items() if freq > 5}
     filtered_concepts = {concept: freq for concept, freq in concept_counter.most_common(20)}
     sorted_concept_freq = dict(sorted(filtered_concepts.items(), key=lambda item: item[1], reverse=True))
+    #print(sorted_concept_freq)
+    num_concepts = len(sorted_concept_freq)
+    fig_width = max(10, num_concepts * 0.5)
 
-    return sorted_concept_freq
+    # Create a data frame from the sorted concept frequencies
+    concept_df = pd.DataFrame(list(sorted_concept_freq.items()), columns=['Concept', 'Frequency'])
+    buf = BytesIO()
+
+    # Create the bar plot
+    fig = Figure(figsize=(fig_width, 6))
+    ax = fig.add_subplot(111)
+    #plt.figure(figsize=(fig_width, 6))
+    sns.barplot(x='Concept', y='Frequency', data=concept_df, palette='magma', ax=ax, hue='Concept', legend=False)
+
+    # Add labels and title
+    ax.set_xlabel('Concepts')
+    ax.set_ylabel('Frequency')
+    ax.set_title('Frequency of Concepts in Text (Top 20)')
+    ax.tick_params(axis='x', labelrotation=45)  # Rotate the x-axis labels
+
+    # Save the plot
+    fig.tight_layout()
+    fig.savefig(buf, format='png', bbox_inches='tight') #CHANGE
+    
+    data = base64.b64encode(buf.getbuffer()).decode("ascii")
+
+    return {"status": "success", "message": "Concepts extracted successfully.", "image_data": data}
 
 
 ########################################################################################################################
@@ -371,7 +416,7 @@ def Haystack_qa_many(pdf_directory, query: str):
 #defining the routes
 
 #route to the home page
-@app.get("/")
+@app.get("/",response_class=HTMLResponse)
 def index():
     """
     This function handles the index route of the application.
@@ -379,7 +424,20 @@ def index():
     Returns:
         dict: A dictionary containing a welcome message.
     """
-    return {"Welcome": "To Haystack"}
+    return """
+    <html>
+    <head>
+        <title>Upload PDFs</title>
+    </head>
+    <body>
+        <h1>Upload PDFs</h1>
+        <form action="/conceptsfrequencies/" method="post" enctype="multipart/form-data">
+            <input type="file" name="files" accept="application/pdf" multiple>
+            <button type="submit">Upload</button>
+        </form>
+    </body>
+    </html>
+    """
 
 #route to the /login page
 @app.post("/login")
@@ -471,8 +529,7 @@ async def search_keyword(files: List[UploadFile], keyword: str) -> Dict[str, Any
 async def concept_frequencies(files: List[UploadFile]):
 
     try:
-        concept_counter = await concepts_frequencies_in_pdfs(files)
-        return {"status": "success", "concepts": dict(concept_counter)}
+        return await concepts_frequencies_in_pdfs(files)
     except Exception as e:
         return {"status": "fail", "message": f"Failed to extract concepts. Error ocurred: {e}"}
     
