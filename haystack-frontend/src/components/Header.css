@@ -4,8 +4,11 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: white; 
+    background-color: white;
     margin-top: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
 }
 
 .brand-container {
@@ -13,8 +16,9 @@
     padding: 1rem;
 }
 
-.button-container{
+.button-container {
     background-color: orangered;
     padding: 1rem;
 }
+
   
