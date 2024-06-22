@@ -1,0 +1,82 @@
+input[type="file"] {
+    display: none; /* Hide the file input */
+}
+
+label.file-input-label {
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-bottom: 20px;
+}
+
+label.file-input-label:hover {
+    background-color: #0056b3;
+}
+
+button.submit-button {
+    padding: 10px 20px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+button.submit-button:disabled {
+    background-color: #6c7d70;
+}
+
+button.submit-button:hover {
+    background-color: #218838;
+}
+
+ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+li {
+    margin: 10px 0;
+}
+
+input[type="checkbox"] {
+    display: none;
+}
+
+label {
+    position: relative;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+label::before {
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #007bff;
+    border-radius: 5px;
+    margin-right: 10px;
+    vertical-align: middle;
+    transition: background-color 0.3s, border-color 0.3s;
+}
+
+input[type="checkbox"]:checked + label::before {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+input[type="checkbox"]:checked + label::after {
+    content: '✔';
+    position: absolute;
+    left: 4px;
+    top: 0;
+    font-size: 18px;
+    color: white;
+}

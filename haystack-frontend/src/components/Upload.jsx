@@ -1,17 +1,72 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { addPdfToDatabase, getAllPdfs } from '../utils/indexDB';
+import './Upload.css';
 
-function Upload({ selectedFiles, loading, handleFileChange, handleSubmit }) {
+function Upload({ loading, handleSubmit }) {
+    const [pdfs, setPdfs] = useState([]);
+
+    useEffect(() => {
+        loadPdfs();
+    }, []);
+
+    const loadPdfs = async () => {
+        const allPdfs = await getAllPdfs();
+        setPdfs(allPdfs);
+    };
+
+    const handleFileChange = async (event) => {
+        const files = Array.from(event.target.files);
+        for (let file of files) {
+            await addPdfToDatabase(file);
+        }
+        loadPdfs();
+    };
+
+    const handleCheckboxChange = (id) => {
+        setPdfs(pdfs.map(pdf => pdf.id === id ? { ...pdf, selected: !pdf.selected } : pdf));
+    };
+
     return (
         <div className="App">
             <h1>Upload PDFs and Generate Plot</h1>
-            <form onSubmit={handleSubmit}>
-                <input type="file" multiple onChange={handleFileChange} />
-                <button type="submit" disabled={!selectedFiles || loading}>
-                    {loading ? 'Uploading...' : 'Upload'}
+            <input
+                type="file"
+                multiple
+                accept="application/pdf"
+                id="file-input"
+                onChange={handleFileChange}
+            />
+            <label className="file-input-label" htmlFor="file-input">
+                Browse
+            </label>
+            <ul>
+                {pdfs.map((pdf) => (
+                    <li key={pdf.id}>
+                        <input
+                            type="checkbox"
+                            id={`checkbox-${pdf.id}`}
+                            checked={pdf.selected || false}
+                            onChange={() => handleCheckboxChange(pdf.id)}
+                        />
+                        <label htmlFor={`checkbox-${pdf.id}`}>{pdf.name}</label>
+                    </li>
+                ))}
+            </ul>
+            {pdfs.length > 0 && (
+                <button
+                    className="submit-button"
+                    onClick={() => handleSubmit(pdfs.filter(pdf => pdf.selected))}
+                    disabled={loading}
+                >
+                    {loading ? 'Uploading...' : 'Submit'}
                 </button>
-            </form>
+            )}
         </div>
     );
 }
 
 export default Upload;
+
+
+
+

@@ -1,7 +1,7 @@
 import React from 'react';
 import Header from '../components/Header';
 import Footer from "../components/Footer";
-import homelogo from '../assets/homelogo.png'; // Adjust the path as necessary
+import homelogo from '../assets/homelogo.png'; 
 import './Home.css';
 
 function Home() {

@@ -1,32 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import Footer from "../components/Footer";
 import Upload from "../components/Upload";
 import Output from "../components/Output";
 import './GetInsights.css';
 import axios from 'axios';
+import { getPdfById, clearDatabase } from '../utils/indexDB';
 
 function GetInsights() {
-    const [selectedFiles, setSelectedFiles] = useState(null);
     const [imageData, setImageData] = useState(null);
     const [loading, setLoading] = useState(false);
 
-    const handleFileChange = (event) => {
-        setSelectedFiles(event.target.files);
-    };
+    useEffect(() => {
+        const handleBeforeUnload = (event) => {
+            clearDatabase().then(() => {
+                console.log("Database cleared on session end");
+            });
+        };
 
-    const handleSubmit = async (event) => {
-        event.preventDefault();
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        // Cleanup function to remove the event listener
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, []);
+
+    const handleSubmit = async (selectedPdfs) => {
         setLoading(true);
 
         const formData = new FormData();
-        for (let i = 0; i < selectedFiles.length; i++) {
-            formData.append('files', selectedFiles[i]);
+        for (let pdf of selectedPdfs) {
+            const pdfRecord = await getPdfById(pdf.id);
+            formData.append('files', pdfRecord.file);
         }
 
         try {
-            //Make sure to add post address
-            const response = await axios.post('', formData, {
+            const response = await axios.post('http://localhost:8000/conceptsfrequencies/', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
@@ -45,9 +55,7 @@ function GetInsights() {
             <div className="insights-container">
                 <div className="box upload-box">
                     <Upload 
-                        selectedFiles={selectedFiles}
                         loading={loading}
-                        handleFileChange={handleFileChange}
                         handleSubmit={handleSubmit}
                     />
                 </div>
@@ -61,5 +69,7 @@ function GetInsights() {
 }
 
 export default GetInsights;
+
+
 
 
