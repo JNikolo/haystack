@@ -28,8 +28,8 @@ from langchain_google_genai import (
     HarmCategory,
 
 )
-from langchain_community.embeddings import HuggingFaceEmbeddings
-#from langchain_huggingface import HuggingFaceEmbeddings
+#from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface.embeddings import HuggingFaceEmbeddings
 from langchain_community.llms import HuggingFacePipeline
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_community.document_loaders import TextLoader
@@ -59,7 +59,14 @@ import seaborn as sns
 from matplotlib.figure import Figure
 from io import BytesIO
 
+#mongo
 from pymongo import MongoClient
+
+#pinecone
+from langchain_pinecone import PineconeVectorStore
+
+#custom
+#from HaystackRetriever import HaystackRetriever
 
 load_dotenv()
 
@@ -72,11 +79,14 @@ cluster = MongoClient(MONGO_URI)
 
 DB_NAME = 'pdfs'
 COLLECTION_NAME = 'pdfs_collection'
-NAMESPACE = 'pdfs.pdfs_collection'
+#NAMESPACE = 'pdfs.pdfs_collection'
 
 
 MONGODB_COLLECTION = cluster[DB_NAME][COLLECTION_NAME]
 vector_search_index = "vector_index"
+
+
+PINECONE_API_KEY = os.getenv('PINECONE_API_KEY')
 
 # Hugging Face model for embeddings.
 model_name = "sentence-transformers/all-MiniLM-L6-v2"
@@ -87,14 +97,23 @@ embeddings = HuggingFaceEmbeddings(
     model_kwargs=model_kwargs,
 )
 
-
+'''
 VECTOR_STORE = MongoDBAtlasVectorSearch.from_connection_string(
     connection_string = MONGO_URI,
     namespace = NAMESPACE,
     embedding = embeddings,
     index_name = vector_search_index
 )
+'''
 
+
+INDEX_NAME = 'haystack'
+
+VECTOR_STORE = PineconeVectorStore(
+    pinecone_api_key=PINECONE_API_KEY,
+    embedding = embeddings,
+    index_name = INDEX_NAME,
+)
 
 #creating an instance of FastAPI
 app = FastAPI()
@@ -145,7 +164,7 @@ def submit_docs_for_rag(submitted_pdf, pdf_directory):
 ######################################################### NLPS #########################################################
 
 NLP = spacy.load("en_core_web_sm")
-nltk.download('punkt')
+#nltk.download('punkt')
 
 async def search_keyword_in_pdfs(pdf_files: List[UploadFile], keyword: str) -> Tuple[List[Dict[str, Any]], int]:
     """
@@ -256,7 +275,7 @@ async def concepts_frequencies_in_pdfs(pdf_files: List[UploadFile]):
 ########################################################################################################################
 
 #################################################### RAG QA 1 TO 1 #####################################################
-def Haystack_qa_1(chosen_pdf, pdf_directory, query: str):
+def add_docs(chosen_pdf, pdf_directory, namespace, doc_id):
     pdf = submit_docs_for_rag(chosen_pdf, pdf_directory)
 
     # Create Weaviate vector store (database).
@@ -264,18 +283,27 @@ def Haystack_qa_1(chosen_pdf, pdf_directory, query: str):
 #    embedded_options = EmbeddedOptions()
 #    )
     print(f"Creating vector store for {len(pdf)} chunks")
-  
-
-    # Add to Mongo Vector Store
+        
     VECTOR_STORE.add_texts(
         texts = pdf,
-        metadatas = [{'user_id': 36, 'doc_id' : 224} for i in pdf]
+        namespace = namespace,
+        metadatas = [{'doc_id' : doc_id} for i in pdf]
     )
 
-    # Vector Search retreiver
-    retriever = VECTOR_STORE.as_retriever(
-        search_type = "similarity", 
-        search_kwargs = {"k": 10, "score_threshold": 0.89}
+
+def Haystack_qa_1(chosen_pdf, pdf_directory, query: str, namespace, doc_id):
+
+    #add_docs(chosen_pdf, pdf_directory)
+    
+    RETRIEVER_STORE = PineconeVectorStore.from_existing_index(
+        embedding = embeddings,
+        index_name = INDEX_NAME,
+        namespace = namespace
+    )
+
+    retriever = RETRIEVER_STORE.as_retriever(
+        search_type = "similarity_score_threshold", 
+        search_kwargs = {"k": 10, 'score_threshold': 0.7, 'filter': {"doc_id": doc_id}}   
     )
 
     # Retrieve documents
@@ -285,6 +313,7 @@ def Haystack_qa_1(chosen_pdf, pdf_directory, query: str):
     # Check if retrieved_docs is empty
     if not retriever:
         print(f"No relevant documents found for PDF")
+    
 
     # Define a prompt template.
     # LangChain passes these documents to the {context} input variable and the user's query to the {question} variable.
@@ -534,7 +563,10 @@ async def concept_frequencies(files: List[UploadFile]):
         return {"status": "fail", "message": f"Failed to extract concepts. Error ocurred: {e}"}
     
 
-#Haystack_qa_1("OWASP Application Security Verification Standard 4.0.3-en.pdf", "pdfs", "Keyword search: Authorization")
+#VECTOR_STORE.delete(delete_all=True, namespace="user_1")
+#add_docs("OWASP Application Security Verification Standard 4.0.3-en.pdf", "pdfs", 'user_1', 1)
+#add_docs("file_87.pdf", "pdfs", 'user_1', 2)
+#Haystack_qa_1("a", "b", "What is authorization?", 'user_1', 1)
 
 #submit_docs_for_rag("OWASP Application Security Verification Standard 4.0.3-en.pdf", "pdfs")
 #MONGODB_COLLECTION.delete_many({})
