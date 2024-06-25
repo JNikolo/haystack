@@ -68,7 +68,12 @@ from langchain_pinecone import PineconeVectorStore
 #custom
 #from HaystackRetriever import HaystackRetriever
 
+import firebase_admin
+from firebase_admin.auth import verify_id_token
+
 load_dotenv()
+
+
 
 #Configure gemini api
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
@@ -130,6 +135,30 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"]
 )
+
+# Authentication
+GOOGLE_APPLICATION_CREDENTIAL = os.getenv('GOOGLE_APPLICATION_CREDENTIAL')
+firebase_admin.initialize_app()
+
+# SECURITY/AUTHENTICATION
+# function verify token
+
+def get_firebase_user_from_token(token):
+   
+    try:
+        if not token:
+            # raise and catch to return 401, only needed because fastapi returns 403
+            # by default instead of 401 so we set auto_error to False
+            raise ValueError("No token")
+        user = verify_id_token(token.credentials)
+        return user
+    # lots of possible exceptions, see firebase_admin.auth,
+    # but most of the time it is a credentials issue
+    except Exception:
+        # we also set the header
+        # see https://fastapi.tiangolo.com/tutorial/security/simple-oauth2/
+        print("Invalid")
+        return None
 
 #################################################### SUBMITING PDFS ####################################################
 def submit_docs_for_rag(submitted_pdf, pdf_directory):
@@ -562,6 +591,7 @@ async def concept_frequencies(files: List[UploadFile]):
     except Exception as e:
         return {"status": "fail", "message": f"Failed to extract concepts. Error ocurred: {e}"}
     
+
 
 #VECTOR_STORE.delete(delete_all=True, namespace="user_1")
 #add_docs("OWASP Application Security Verification Standard 4.0.3-en.pdf", "pdfs", 'user_1', 1)
