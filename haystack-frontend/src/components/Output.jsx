@@ -1,15 +1,19 @@
 import React from 'react';
+import './Output.css';
 
-function Output({ imageData }) {
+function Output({ activeButton, imageData }) {
     return (
-        <>
-            {imageData && (
-                <div>
+        <div className="output-container">
+            {activeButton === 'left' && imageData && (
+                <>
                     <h2>Generated Plot</h2>
                     <img src={`data:image/png;base64,${imageData}`} alt="Generated Plot" />
-                </div>
+                </>
             )}
-        </>
+            {activeButton === 'right' && (
+                <h1>Hello</h1>
+            )}
+        </div>
     );
 }
 

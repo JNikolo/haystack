@@ -3,13 +3,15 @@ import Header from '../components/Header';
 import Footer from "../components/Footer";
 import Upload from "../components/Upload";
 import Output from "../components/Output";
+import Options from "../components/Options";
 import './GetInsights.css';
 import axios from 'axios';
-import { getPdfById, clearDatabase } from '../utils/indexDB';
+import { getPdfById, clearDatabase } from '../utils/indexedDB';
 
 function GetInsights() {
     const [imageData, setImageData] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [activeButton, setActiveButton] = useState('left'); 
 
     useEffect(() => {
         const handleBeforeUnload = (event) => {
@@ -20,7 +22,6 @@ function GetInsights() {
 
         window.addEventListener('beforeunload', handleBeforeUnload);
 
-        // Cleanup function to remove the event listener
         return () => {
             window.removeEventListener('beforeunload', handleBeforeUnload);
         };
@@ -59,8 +60,13 @@ function GetInsights() {
                         handleSubmit={handleSubmit}
                     />
                 </div>
-                <div className="box output-box">
-                    <Output imageData={imageData} />
+                <div className="right-side">
+                    <div className="box options-box">
+                        <Options activeButton={activeButton} setActiveButton={setActiveButton} />
+                    </div>
+                    <div className="box output-box">
+                        <Output activeButton={activeButton} imageData={imageData} />
+                    </div>
                 </div>
             </div>
             <Footer />
@@ -69,7 +75,3 @@ function GetInsights() {
 }
 
 export default GetInsights;
-
-
-
-

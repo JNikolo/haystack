@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { addPdfToDatabase, getAllPdfs } from '../utils/indexDB';
+import { addPdfToDatabase, getAllPdfs } from '../utils/indexedDB';
 import './Upload.css';
 
 function Upload({ loading, handleSubmit }) {
