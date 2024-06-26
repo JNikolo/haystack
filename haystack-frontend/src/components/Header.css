@@ -9,16 +9,33 @@
     position: fixed;
     top: 0;
     left: 0;
+    box-sizing: border-box;
+}
+
+.brand-container, .button-container {
+    height: 100%; /* Set the height to 100% of the header */
+    display: flex;
+    align-items: center; /* Center the content vertically */
 }
 
 .brand-container {
     background-color: orange; 
-    padding: 1rem;
+    padding: 0 1rem; /* Adjust padding to prevent overflow */
 }
 
 .button-container {
     background-color: orangered;
-    padding: 1rem;
+    padding: 0 1rem; /* Adjust padding to prevent overflow */
 }
+
+h1 {
+    margin: 0; /* Remove default margin */
+}
+
+a {
+    color: white; /* Ensure link text is visible */
+    text-decoration: none;
+}
+
 
   

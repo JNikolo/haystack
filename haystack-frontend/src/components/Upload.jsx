@@ -28,7 +28,7 @@ function Upload({ loading, handleSubmit }) {
 
     return (
         <div className="App">
-            <h1>Upload PDFs and Generate Plot</h1>
+            <h1 id="title">Upload PDFs and Generate Plot</h1>
             <input
                 type="file"
                 multiple
@@ -66,7 +66,3 @@ function Upload({ loading, handleSubmit }) {
 }
 
 export default Upload;
-
-
-
-

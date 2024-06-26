@@ -1,5 +1,5 @@
 input[type="file"] {
-    display: none; /* Hide the file input */
+    display: none; 
 }
 
 label.file-input-label {
@@ -45,17 +45,17 @@ li {
     margin: 10px 0;
 }
 
-input[type="checkbox"] {
-    display: none;
+li input[type="checkbox"] {
+    display: none; 
 }
 
-label {
+li label {
     position: relative;
     cursor: pointer;
     font-size: 16px;
 }
 
-label::before {
+li label::before {
     content: '';
     display: inline-block;
     width: 20px;
@@ -67,16 +67,23 @@ label::before {
     transition: background-color 0.3s, border-color 0.3s;
 }
 
-input[type="checkbox"]:checked + label::before {
+li input[type="checkbox"]:checked + label::before {
     background-color: #007bff;
     border-color: #007bff;
 }
 
-input[type="checkbox"]:checked + label::after {
+li input[type="checkbox"]:checked + label::after {
     content: '✔';
     position: absolute;
     left: 4px;
     top: 0;
     font-size: 18px;
     color: white;
+}
+
+#title {
+    font-size: 1.7vw; 
+    text-align: center;
+    margin-bottom: 20px;
+    white-space: nowrap; 
 }
