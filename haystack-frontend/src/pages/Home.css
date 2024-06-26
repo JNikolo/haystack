@@ -4,14 +4,14 @@ body, html {
 
 .home-content {
     display: flex;
-    flex-direction: column; /* Arrange items in a column */
-    justify-content: center; /* Center content vertically */
-    align-items: center;     /* Center content horizontally */
+    flex-direction: column; 
+    justify-content: center; 
+    align-items: center;     
     text-align: center;
     color: white;
   }
   
   .homelogo {
     margin-top: 5%;
-    margin-bottom: 20px; /* Space between image and title */
+    margin-bottom: 20px; 
   }

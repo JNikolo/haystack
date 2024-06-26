@@ -1,27 +1,61 @@
-import React from "react";
-import "./SignIn.css"; 
+// src/pages/SignIn.jsx
+import React, { useState } from "react";
+import { auth } from "../firebase/config";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { useNavigate } from "react-router-dom";
+import "./SignIn.css";
 
 function SignIn() {
-    const [signIn, toggle] = React.useState(true);
+    const [signIn, toggle] = useState(true);
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const navigate = useNavigate();
+
+    const handleSignIn = (e) => {
+        e.preventDefault();
+        signInWithEmailAndPassword(auth, email, password)
+            .then((userCredential) => {
+                // Signed in
+                const user = userCredential.user;
+                console.log("Signed in as:", user.email);
+                navigate("/getinsights"); // Redirect to GetInsights page
+            })
+            .catch((error) => {
+                console.error("Error signing in:", error);
+            });
+    };
+
+    const handleSignUp = (e) => {
+        e.preventDefault();
+        createUserWithEmailAndPassword(auth, email, password)
+            .then((userCredential) => {
+                // Signed up
+                const user = userCredential.user;
+                console.log("Signed up as:", user.email);
+            })
+            .catch((error) => {
+                console.error("Error signing up:", error);
+            });
+    };
 
     return (
         <div className="container">
             <div className={`sign-up-container ${signIn ? "" : "active"}`}>
-                <form className="form">
+                <form className="form" onSubmit={handleSignUp}>
                     <h1 className="title">Create Account</h1>
                     <input type="text" placeholder="Name" className="input" />
-                    <input type="email" placeholder="Email" className="input" />
-                    <input type="password" placeholder="Password" className="input" />
-                    <button className="button">Sign Up</button>
+                    <input type="email" placeholder="Email" className="input" onChange={(e) => setEmail(e.target.value)} />
+                    <input type="password" placeholder="Password" className="input" onChange={(e) => setPassword(e.target.value)} />
+                    <button className="button" type="submit">Sign Up</button>
                 </form>
             </div>
 
             <div className={`sign-in-container ${signIn ? "active" : ""}`}>
-                <form className="form">
+                <form className="form" onSubmit={handleSignIn}>
                     <h1 className="title">Sign in</h1>
-                    <input type="email" placeholder="Email" className="input" />
-                    <input type="password" placeholder="Password" className="input" />
-                    <button className="button">Sign In</button>
+                    <input type="email" placeholder="Email" className="input" onChange={(e) => setEmail(e.target.value)} />
+                    <input type="password" placeholder="Password" className="input" onChange={(e) => setPassword(e.target.value)} />
+                    <button className="button" type="submit">Sign In</button>
                 </form>
             </div>
 

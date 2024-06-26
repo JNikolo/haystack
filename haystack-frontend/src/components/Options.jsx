@@ -12,13 +12,13 @@ function Options({ activeButton, setActiveButton }) {
                 className={`option-button ${activeButton === 'left' ? 'active' : ''}`}
                 onClick={() => handleToggle('left')}
             >
-                Left
+                Analyze
             </button>
             <button 
                 className={`option-button ${activeButton === 'right' ? 'active' : ''}`}
                 onClick={() => handleToggle('right')}
             >
-                Right
+                RAG
             </button>
             <div className={`toggle-indicator ${activeButton}`}></div>
         </div>

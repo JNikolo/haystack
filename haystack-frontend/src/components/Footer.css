@@ -1,7 +1,7 @@
 .footer-container {
     position: fixed;
     bottom: 0;
-    right: 0; /* Adjusted to position at the bottom right corner */
+    right: 0; 
     width: 100vw;
     height: 10vh;
     display: flex;
@@ -12,11 +12,9 @@
     padding: 0 20px;
 }
 
-
-
 .IQSpatialogo {
 
         max-height: 100%;
         width: auto;
-        margin-bottom: 10px; /* Ensure it aligns well with the footer's bottom */
+        margin-bottom: 10px; 
 }
