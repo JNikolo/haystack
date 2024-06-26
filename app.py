@@ -163,8 +163,9 @@ def get_firebase_user_from_token(token):
 #################################################### SUBMITING PDFS ####################################################
 def submit_docs_for_rag(submitted_pdf):
     #directory_path = pdf_directory
-    pdf = submitted_pdf
+    #pdf = submitted_pdf
 
+    reader = PdfReader(submitted_pdf.file)
     # Load the pdf.
     #loaders = []
     #loader = PyMuPDFLoader(directory_path + "/" + pdf)
@@ -177,9 +178,14 @@ def submit_docs_for_rag(submitted_pdf):
     #print("len(data) =", len(data), "\n")
 
     # Initialize the text splitter
+    raw_text = ''
+    for page in reader.pages:
+        text = page.extract_text()
+        if text:
+            raw_text += text
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
 
-    docs = text_splitter.split_documents(data)#, metadatas = [{'doc_id' : 1}])
+    docs = text_splitter.split_text(raw_text)#, metadatas = [{'doc_id' : 1}])
     doc_content = [doc.page_content for doc in docs]
     print(doc_content)
 
@@ -385,10 +391,9 @@ def Haystack_qa_1(chosen_pdf, pdf_directory, query: str, namespace, doc_id):
 def Haystack_qa_many(pdf_list, query: str):
     pdfs = []
     replies = []
-    for file in os.listdir():
-        if file.endswith(".pdf"):
-            #Separately chunks all pdfs individually so that they can be embedded individually
-            pdfs.append(submit_docs_for_rag(file, pdf_list)) 
+    for file in pdf_list:
+        #Separately chunks all pdfs individually so that they can be embedded individually
+        pdfs.append(submit_docs_for_rag(file)) 
     # Hugging Face model for embeddings.
     model_name = "sentence-transformers/all-MiniLM-L6-v2"
     model_kwargs = {'device': 'cpu'}
