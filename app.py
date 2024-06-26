@@ -50,14 +50,16 @@ import google.generativeai as genai
 import nltk
 import csv
 from nltk.tokenize import sent_tokenize
+from nltk.corpus import stopwords
 import tempfile
 import shutil
 import pandas as pd
 import spacy
-from collections import Counter
+from collections import Counter, defaultdict
 import seaborn as sns
 from matplotlib.figure import Figure
 from io import BytesIO
+import re
 
 #mongo
 from pymongo import MongoClient
@@ -160,6 +162,17 @@ def get_firebase_user_from_token(token):
         print("Invalid")
         return None
 
+
+""" def login():
+    data = request.get_json()
+    id_token = data['id_token']
+    try:
+        decoded_token = auth.verify_id_token(id_token)
+        uid = decoded_token['uid']
+        return jsonify({"message": "User authenticated successfully", "uid": uid}), 200
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400 """
+
 #################################################### SUBMITING PDFS ####################################################
 def submit_docs_for_rag(submitted_pdf, pdf_directory):
     directory_path = pdf_directory
@@ -193,7 +206,6 @@ def submit_docs_for_rag(submitted_pdf, pdf_directory):
 ######################################################### NLPS #########################################################
 
 NLP = spacy.load("en_core_web_sm")
-#nltk.download('punkt')
 
 async def search_keyword_in_pdfs(pdf_files: List[UploadFile], keyword: str) -> Tuple[List[Dict[str, Any]], int]:
     """
@@ -247,59 +259,26 @@ async def search_keyword_in_pdfs(pdf_files: List[UploadFile], keyword: str) -> T
     return keyword_counts, total
 
 async def concepts_frequencies_in_pdfs(pdf_files: List[UploadFile]):
-    
-    concept_counter = Counter()
-
+    entity_info = defaultdict(lambda: {'frequency': 0, 'labels': set()})
+    text = ''
     for pdf_file in pdf_files:
-        # Sample text
-        text = ''
-
         reader = PdfReader(pdf_file.file)
         for page in reader.pages:
             page_text = page.extract_text()
             if page_text:  # Checking if text extraction is successful
-                text += page_text.lower()
+                text += page_text
+                
+    #text = ' '.join(text.split())
 
         # Process the text with spaCy
-        doc = NLP(text)
+    doc = NLP(text)
+    for token in doc:
+        if token.pos_ in ['NOUN', 'PROPN']:  # Check if token is a noun or proper noun
+            entity_info[token.text]['frequency'] += 1
+            entity_info[token.text]['labels'].add(token.ent_type_)
 
-        # Extract nouns (or other POS you're interested in)
-        concepts = [token.text for token in doc if token.pos_ == "NOUN"]
-
-        # Count the frequency of each concept
-        concept_counter.update(concepts)
-    
-    #filtered_concepts = {concept: freq for concept, freq in concept_counter.items() if freq > 5}
-    filtered_concepts = {concept: freq for concept, freq in concept_counter.most_common(20)}
-    sorted_concept_freq = dict(sorted(filtered_concepts.items(), key=lambda item: item[1], reverse=True))
-    #print(sorted_concept_freq)
-    num_concepts = len(sorted_concept_freq)
-    fig_width = max(10, num_concepts * 0.5)
-
-    # Create a data frame from the sorted concept frequencies
-    concept_df = pd.DataFrame(list(sorted_concept_freq.items()), columns=['Concept', 'Frequency'])
-    buf = BytesIO()
-
-    # Create the bar plot
-    fig = Figure(figsize=(fig_width, 6))
-    ax = fig.add_subplot(111)
-    #plt.figure(figsize=(fig_width, 6))
-    sns.barplot(x='Concept', y='Frequency', data=concept_df, palette='magma', ax=ax, hue='Concept', legend=False)
-
-    # Add labels and title
-    ax.set_xlabel('Concepts')
-    ax.set_ylabel('Frequency')
-    ax.set_title('Frequency of Concepts in Text (Top 20)')
-    ax.tick_params(axis='x', labelrotation=45)  # Rotate the x-axis labels
-
-    # Save the plot
-    fig.tight_layout()
-    fig.savefig(buf, format='png', bbox_inches='tight') #CHANGE
-    
-    data = base64.b64encode(buf.getbuffer()).decode("ascii")
-
-    return {"status": "success", "message": "Concepts extracted successfully.", "image_data": data}
-
+    sorted_entities = sorted(entity_info.items(), key=lambda x: x[1]['frequency'], reverse=True)[:20]
+    return {"status": "success", "message": "Concepts extracted successfully.", "concepts": sorted_entities}
 
 ########################################################################################################################
 
