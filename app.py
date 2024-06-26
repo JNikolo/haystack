@@ -591,7 +591,22 @@ async def concept_frequencies(files: List[UploadFile]):
     except Exception as e:
         return {"status": "fail", "message": f"Failed to extract concepts. Error ocurred: {e}"}
     
+# Define the route for /qa_many
+@app.post("/qamany")
+def qamany(pdf_list: List[UploadFile], query: str):
+    """
+    Executes QA on multiple PDFs in a directory with the provided query.
 
+    Args:
+        pdf_directory (str): The directory containing PDF files.
+        query (str): The query string for the QA.
+
+    Returns:
+        list: A list of strings containing the replies to the queries.
+
+    """
+    replies = Haystack_qa_many(pdf_list, query)
+    return {"status":"success", 'results' : replies}
 
 #VECTOR_STORE.delete(delete_all=True, namespace="user_1")
 #add_docs("OWASP Application Security Verification Standard 4.0.3-en.pdf", "pdfs", 'user_1', 1)
