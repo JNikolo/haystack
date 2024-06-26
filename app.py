@@ -199,14 +199,14 @@ def submit_docs_for_rag(submitted_pdf):
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
 
     docs = text_splitter.split_text(raw_text)#, metadatas = [{'doc_id' : 1}])
-    doc_content = [doc.page_content for doc in docs]
-    print(doc_content)
+    #doc_content = [doc.page_content for doc in docs]
+    #print(doc_content)
 
     # Print the document.
  #   print("\n\n\n")
  #   pprint.pprint(docs)
 
-    return doc_content
+    return docs
 ########################################################################################################################
 
 ######################################################### NLPS #########################################################
