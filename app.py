@@ -212,6 +212,8 @@ def submit_docs_for_rag(submitted_pdf):
 ######################################################### NLPS #########################################################
 
 NLP = spacy.load("en_core_web_sm")
+from spacy.lang.en import English
+parser = English()
 
 async def search_keyword_in_pdfs(pdf_files: List[UploadFile], keyword: str) -> Tuple[List[Dict[str, Any]], int]:
     """
@@ -266,26 +268,196 @@ async def search_keyword_in_pdfs(pdf_files: List[UploadFile], keyword: str) -> T
 
 async def concepts_frequencies_in_pdfs(pdf_files: List[UploadFile]):
     entity_info = defaultdict(lambda: {'frequency': 0, 'labels': set()})
-    text = ''
+    
+    all_pdf_text = []
     for pdf_file in pdf_files:
-        reader = PdfReader(pdf_file.file)
-        for page in reader.pages:
-            page_text = page.extract_text()
-            if page_text:  # Checking if text extraction is successful
-                text += page_text
+        pdf_reader = PdfReader(pdf_file.file)
+        pdf_text = ' '.join(page.extract_text() for page in pdf_reader.pages)
+        all_pdf_text.append(pdf_text)
                 
-    #text = ' '.join(text.split())
+    combined_text = '\n\n'.join(all_pdf_text)
 
         # Process the text with spaCy
-    doc = NLP(text)
-    for token in doc:
-        if token.pos_ in ['NOUN', 'PROPN']:  # Check if token is a noun or proper noun
-            entity_info[token.text]['frequency'] += 1
-            entity_info[token.text]['labels'].add(token.ent_type_)
+    doc = NLP(combined_text)
 
-    sorted_entities = sorted(entity_info.items(), key=lambda x: x[1]['frequency'], reverse=True)[:20]
-    return {"status": "success", "message": "Concepts extracted successfully.", "concepts": sorted_entities}
+    for ent in doc.ents:
+        if ent.label_ in ['ORG', 'PERSON', 'GPE', 'PRODUCT', 'EVENT']:
+            cleaned_text = re.sub('[^A-Za-z0-9]+', ' ', ent.text).strip()
+            if cleaned_text:  # Check if cleaned_text is not empty
+                entity_info[cleaned_text]['frequency'] += 1
+                entity_info[cleaned_text]['labels'].add(ent.label_)
 
+    sorted_entities = sorted(entity_info.items(), key=lambda x: x[1]['frequency'], reverse=True)[:10]
+    result = []
+    for entity, info in sorted_entities:
+        result.append({'text': entity, 'frequency': info['frequency'], 'labels': list(info['labels'])})
+
+
+    return {"status": "success", "message": "Concepts extracted successfully.", "concepts": result}
+
+from gensim.parsing.preprocessing import preprocess_string
+def topic_modeling_from_pdfs(pdf_files: List[UploadFile]):
+    
+    all_pdf_text = []
+    for pdf_file in pdf_files:
+        pdf_reader = PdfReader(pdf_file.file)
+        pdf_text = ' '.join(page.extract_text() for page in pdf_reader.pages)
+        all_pdf_text.append(pdf_text)
+                
+    df = pd.DataFrame(all_pdf_text, columns=['Sentence'])
+    # Text preprocessing
+    def preprocess_text(text):
+        if pd.isna(text):  # Check if the value is NaN
+            return []  # Return an empty list for NaN values
+        return preprocess_string(str(text))  # Convert to string before preprocessing
+
+
+    # Apply preprocessing to the 'sentence' column
+    df['preprocessed_sentence'] = df['Sentence'].apply(preprocess_text)
+
+    data_ready = df['preprocessed_sentence']
+    from gensim.corpora import Dictionary
+
+    # Create a dictionary and a document-term matrix
+    dictionary = Dictionary(df['preprocessed_sentence'])
+    corpus = [dictionary.doc2bow(doc) for doc in df['preprocessed_sentence']]
+
+    from spacy.lang.en import English
+    parser = English()
+
+    def tokenize(text):
+        lda_tokens = []
+        tokens = parser(text)
+        for token in tokens:
+            if token.orth_.isspace():
+                continue
+            elif token.like_url:
+                lda_tokens.append('URL')
+            elif token.orth_.startswith('@'):
+                lda_tokens.append('SCREEN_NAME')
+            else:
+                lda_tokens.append(token.lower_)
+        return lda_tokens
+    
+    from nltk.corpus import wordnet as wn
+
+
+    nltk.download('wordnet')
+
+
+    def get_lemma(word):
+        lemma = wn.morphy(word)
+        if lemma is None:
+            return word
+        else:
+            return lemma
+
+    from nltk.stem.wordnet import WordNetLemmatizer
+    def get_lemma2(word):
+        return WordNetLemmatizer().lemmatize(word)
+
+
+    nltk.download('stopwords')
+    en_stop = set(nltk.corpus.stopwords.words('english'))
+
+
+    def prepare_text_for_lda(text):
+        tokens = tokenize(text)
+        tokens = [token for token in tokens if len(token) > 4]
+        tokens = [token for token in tokens if token not in en_stop]
+        tokens = [get_lemma(token) for token in tokens]
+        return tokens
+    
+
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from gensim.corpora import Dictionary
+    import numpy as np
+
+    # Assuming 'prepare_text_for_lda', 'tokenize', 'get_lemma', and other required functions are defined
+    # Also assuming 'csv_file_path' is defined and points to your data file
+
+    # Read and preprocess text data
+    
+    preprocessed_documents = [prepare_text_for_lda(line) for line in all_pdf_text]
+
+    # Join tokens for TF-IDF vectorization
+    processed_docs = [' '.join(doc) for doc in preprocessed_documents]
+
+    # Apply TF-IDF Vectorization
+    vectorizer = TfidfVectorizer()
+    tfidf_matrix = vectorizer.fit_transform(processed_docs)
+    feature_names = vectorizer.get_feature_names_out()
+
+    # Create a mapping of words to their maximum TF-IDF scores
+    word_to_max_score = {}
+    for doc in range(tfidf_matrix.shape[0]):
+        feature_index = tfidf_matrix[doc, :].nonzero()[1]
+        for i in feature_index:
+            word = feature_names[i]
+            score = tfidf_matrix[doc, i]
+            if word not in word_to_max_score or score > word_to_max_score[word]:
+                word_to_max_score[word] = score
+
+    # Get the top 50% threshold score
+    scores = list(word_to_max_score.values())
+    scores.sort(reverse=True)
+    top_50_percent_threshold = scores[len(scores) // 2]
+
+    # Filter words in each document to include only those above the threshold
+    top_50_percent_words = []
+    for doc in preprocessed_documents:
+        filtered_words = [word for word in doc if word in word_to_max_score and word_to_max_score[word] > top_50_percent_threshold]
+        top_50_percent_words.append(filtered_words)
+
+    # 'top_50_percent_words' now contains the top 50% important words from each document
+    # Use 'top_50_percent_words' for further analysis or modeling
+
+    print(top_50_percent_words)
+
+    text_data = top_50_percent_words
+
+    from gensim import corpora
+    dictionary = corpora.Dictionary(text_data)
+
+    corpus = [dictionary.doc2bow(text) for text in text_data]
+
+    from gensim.models import LdaModel
+    import pprint
+    import random
+
+    # Set the number of topics
+    num_topics = 2  # You can adjust this based on your dataset
+
+
+    # Set the random seed for reproducibility
+    random.seed(100)
+    np.random.seed(100)
+
+    # Build the LDA model
+    lda_model = LdaModel(corpus, num_topics=num_topics, id2word=dictionary, passes=15, random_state=100)
+
+    # Print topics
+    pprint.pprint(lda_model.print_topics())
+
+    topic_modeling = lda_model.print_topics()
+
+    # Assuming you already have 'lda_model', 'data_ready', and 'topics'
+    topics = lda_model.show_topics(formatted=False)
+    data_flat = [w for w_list in data_ready for w in w_list]
+    counter = Counter(data_flat)
+
+    out_count = []
+    out_importance = []
+
+    for i, topic in enumerate(topics):
+        for word, weight in topic[1]:
+            out_count.append([word, i, counter[word]])
+            out_importance.append([word, i, weight])
+
+    df_count = pd.DataFrame(out_count, columns=['word', 'topic_id', 'word_count'])
+    df_importance = pd.DataFrame(out_importance, columns=['word', 'topic_id', 'importance'])
+
+    return df_count, df_importance
 ########################################################################################################################
 
 #################################################### RAG QA 1 TO 1 #####################################################
@@ -540,7 +712,8 @@ async def create_upload_files(files: list[UploadFile]):
         return {"status": "success", "message": "Text extracted successfully."}
     except Exception as e:
         return {"status": "fail", "message": f"Failed to extract text. Error ocurred: {e}"}
-
+    
+########################################################################################################################
 @app.post("/searchkeyword/")
 async def search_keyword(files: List[UploadFile], keyword: str) -> Dict[str, Any]:
     """
@@ -574,23 +747,25 @@ async def concept_frequencies(files: List[UploadFile]):
         return await concepts_frequencies_in_pdfs(files)
     except Exception as e:
         return {"status": "fail", "message": f"Failed to extract concepts. Error ocurred: {e}"}
+
+
+@app.post("/topicmodeling/")
+async def topic_modeling(files: List[UploadFile]):
+    #try:
+        df_count, df_importance = topic_modeling_from_pdfs(files)
+        count = df_count.to_dict(orient='records')
+        importance = df_importance.to_dict(orient='records')
+        return {"status": "success", "message": "Topic modeling performed successfully.", "count": count, "importance": importance}
+    #except Exception as e:
+    #    return {"status": "fail", "message": f"Failed to perform topic modeling. Error ocurred: {e}"}
+
+########################################################################################################################
+# doc_id should be integer
+@app.post("/qa_one")
+def qa_one(doc_id:str, query: str):
     
-# Define the route for /qa_many
-@app.post("/qamany")
-def qamany(pdf_list: List[UploadFile], query: str):
-    """
-    Executes QA on multiple PDFs in a directory with the provided query.
-
-    Args:
-        pdf_directory (str): The directory containing PDF files.
-        query (str): The query string for the QA.
-
-    Returns:
-        list: A list of strings containing the replies to the queries.
-
-    """
-    replies = Haystack_qa_many(pdf_list, query)
-    return {"status":"success", 'results' : replies}
+    reply = Haystack_qa_1('','', query, 'user_1', doc_id)
+    return {"status":"success", 'result' : reply}
 
 #VECTOR_STORE.delete(delete_all=True, namespace="user_1")
 #add_docs("OWASP Application Security Verification Standard 4.0.3-en.pdf", "pdfs", 'user_1', 1)
