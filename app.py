@@ -47,19 +47,20 @@ from langchain_community.document_loaders import PyMuPDFLoader
 import google.generativeai as genai
 
 #NLP libs
-import nltk
-import csv
 from nltk.tokenize import sent_tokenize
-from nltk.corpus import stopwords
-import tempfile
-import shutil
-import pandas as pd
 import spacy
 from collections import Counter, defaultdict
-import seaborn as sns
-from matplotlib.figure import Figure
-from io import BytesIO
 import re
+from spacy.lang.en import English
+import numpy as np
+import pandas as pd
+import nltk
+from nltk.corpus import stopwords, wordnet
+from nltk.stem.wordnet import WordNetLemmatizer
+from sklearn.feature_extraction.text import TfidfVectorizer
+from gensim.parsing.preprocessing import preprocess_string
+from gensim.corpora import Dictionary
+from gensim.models import LdaModel
 
 #mongo
 from pymongo import MongoClient
@@ -212,8 +213,19 @@ def submit_docs_for_rag(submitted_pdf):
 ######################################################### NLPS #########################################################
 
 NLP = spacy.load("en_core_web_sm")
-from spacy.lang.en import English
-parser = English()
+PARSER = English()
+EN_STOP = set(nltk.corpus.stopwords.words('english'))
+nltk.download('stopwords')
+nltk.download('wordnet')
+
+async def get_list_raw_text(pdf_files: List[UploadFile]) -> List[str]:
+    all_pdf_text = []
+    for pdf_file in pdf_files:
+        pdf_reader = PdfReader(pdf_file.file)
+        pdf_text = ' '.join(page.extract_text() for page in pdf_reader.pages if page.extract_text())
+        all_pdf_text.append(pdf_text)
+    
+    return all_pdf_text
 
 async def search_keyword_in_pdfs(pdf_files: List[UploadFile], keyword: str) -> Tuple[List[Dict[str, Any]], int]:
     """
@@ -269,11 +281,7 @@ async def search_keyword_in_pdfs(pdf_files: List[UploadFile], keyword: str) -> T
 async def concepts_frequencies_in_pdfs(pdf_files: List[UploadFile]):
     entity_info = defaultdict(lambda: {'frequency': 0, 'labels': set()})
     
-    all_pdf_text = []
-    for pdf_file in pdf_files:
-        pdf_reader = PdfReader(pdf_file.file)
-        pdf_text = ' '.join(page.extract_text() for page in pdf_reader.pages)
-        all_pdf_text.append(pdf_text)
+    all_pdf_text = await get_list_raw_text(pdf_files)
                 
     combined_text = '\n\n'.join(all_pdf_text)
 
@@ -293,92 +301,42 @@ async def concepts_frequencies_in_pdfs(pdf_files: List[UploadFile]):
         result.append({'text': entity, 'frequency': info['frequency'], 'labels': list(info['labels'])})
 
 
-    return {"status": "success", "message": "Concepts extracted successfully.", "concepts": result}
+    return result
 
-from gensim.parsing.preprocessing import preprocess_string
-def topic_modeling_from_pdfs(pdf_files: List[UploadFile]):
-    
-    all_pdf_text = []
-    for pdf_file in pdf_files:
-        pdf_reader = PdfReader(pdf_file.file)
-        pdf_text = ' '.join(page.extract_text() for page in pdf_reader.pages)
-        all_pdf_text.append(pdf_text)
-                
-    df = pd.DataFrame(all_pdf_text, columns=['Sentence'])
-    # Text preprocessing
-    def preprocess_text(text):
-        if pd.isna(text):  # Check if the value is NaN
-            return []  # Return an empty list for NaN values
-        return preprocess_string(str(text))  # Convert to string before preprocessing
-
-
-    # Apply preprocessing to the 'sentence' column
-    df['preprocessed_sentence'] = df['Sentence'].apply(preprocess_text)
-
-    data_ready = df['preprocessed_sentence']
-    from gensim.corpora import Dictionary
-
-    # Create a dictionary and a document-term matrix
-    dictionary = Dictionary(df['preprocessed_sentence'])
-    corpus = [dictionary.doc2bow(doc) for doc in df['preprocessed_sentence']]
-
-    from spacy.lang.en import English
+async def tokenize(text):
     parser = English()
-
-    def tokenize(text):
-        lda_tokens = []
-        tokens = parser(text)
-        for token in tokens:
-            if token.orth_.isspace():
-                continue
-            elif token.like_url:
-                lda_tokens.append('URL')
-            elif token.orth_.startswith('@'):
-                lda_tokens.append('SCREEN_NAME')
-            else:
-                lda_tokens.append(token.lower_)
-        return lda_tokens
-    
-    from nltk.corpus import wordnet as wn
-
-
-    nltk.download('wordnet')
-
-
-    def get_lemma(word):
-        lemma = wn.morphy(word)
-        if lemma is None:
-            return word
+    lda_tokens = []
+    tokens = parser(text)
+    for token in tokens:
+        if token.orth_.isspace():
+            continue
+        elif token.like_url:
+            lda_tokens.append('URL')
+        elif token.orth_.startswith('@'):
+            lda_tokens.append('SCREEN_NAME')
         else:
-            return lemma
+            lda_tokens.append(token.lower_)
+    return lda_tokens
 
-    from nltk.stem.wordnet import WordNetLemmatizer
-    def get_lemma2(word):
-        return WordNetLemmatizer().lemmatize(word)
+async def get_lemma(word):
+    lemma = wordnet.morphy(word)
+    if lemma is None:
+        return word
+    else:
+        return lemma
 
+async def prepare_text_for_lda(text):
+    tokens = await tokenize(text)
+    tokens = [token for token in tokens if len(token) > 4]
+    tokens = [token for token in tokens if token not in EN_STOP]
+    tokens = [await get_lemma(token) for token in tokens]
+    return tokens
 
-    nltk.download('stopwords')
-    en_stop = set(nltk.corpus.stopwords.words('english'))
+async def topic_modeling_from_pdfs(pdf_files: List[UploadFile]):
+    all_pdf_text = await get_list_raw_text(pdf_files)
 
-
-    def prepare_text_for_lda(text):
-        tokens = tokenize(text)
-        tokens = [token for token in tokens if len(token) > 4]
-        tokens = [token for token in tokens if token not in en_stop]
-        tokens = [get_lemma(token) for token in tokens]
-        return tokens
-    
-
-    from sklearn.feature_extraction.text import TfidfVectorizer
-    from gensim.corpora import Dictionary
-    import numpy as np
-
-    # Assuming 'prepare_text_for_lda', 'tokenize', 'get_lemma', and other required functions are defined
-    # Also assuming 'csv_file_path' is defined and points to your data file
-
-    # Read and preprocess text data
-    
-    preprocessed_documents = [prepare_text_for_lda(line) for line in all_pdf_text]
+    # Preprocess text
+    preprocessed_documents = [await prepare_text_for_lda(line) for line in all_pdf_text]
 
     # Join tokens for TF-IDF vectorization
     processed_docs = [' '.join(doc) for doc in preprocessed_documents]
@@ -409,42 +367,21 @@ def topic_modeling_from_pdfs(pdf_files: List[UploadFile]):
         filtered_words = [word for word in doc if word in word_to_max_score and word_to_max_score[word] > top_50_percent_threshold]
         top_50_percent_words.append(filtered_words)
 
-    # 'top_50_percent_words' now contains the top 50% important words from each document
     # Use 'top_50_percent_words' for further analysis or modeling
-
-    print(top_50_percent_words)
 
     text_data = top_50_percent_words
 
-    from gensim import corpora
-    dictionary = corpora.Dictionary(text_data)
-
+    # Create a dictionary and a document-term matrix
+    dictionary = Dictionary(text_data)
     corpus = [dictionary.doc2bow(text) for text in text_data]
 
-    from gensim.models import LdaModel
-    import pprint
-    import random
-
-    # Set the number of topics
-    num_topics = 2  # You can adjust this based on your dataset
-
-
-    # Set the random seed for reproducibility
-    random.seed(100)
-    np.random.seed(100)
-
     # Build the LDA model
+    num_topics = 5  # You can adjust this based on your dataset
     lda_model = LdaModel(corpus, num_topics=num_topics, id2word=dictionary, passes=15, random_state=100)
 
-    # Print topics
-    pprint.pprint(lda_model.print_topics())
-
-    topic_modeling = lda_model.print_topics()
-
-    # Assuming you already have 'lda_model', 'data_ready', and 'topics'
+    # Prepare output DataFrames
     topics = lda_model.show_topics(formatted=False)
-    data_flat = [w for w_list in data_ready for w in w_list]
-    counter = Counter(data_flat)
+    counter = Counter([word for tokens in preprocessed_documents for word in tokens])
 
     out_count = []
     out_importance = []
@@ -453,11 +390,12 @@ def topic_modeling_from_pdfs(pdf_files: List[UploadFile]):
         for word, weight in topic[1]:
             out_count.append([word, i, counter[word]])
             out_importance.append([word, i, weight])
-
+    
     df_count = pd.DataFrame(out_count, columns=['word', 'topic_id', 'word_count'])
     df_importance = pd.DataFrame(out_importance, columns=['word', 'topic_id', 'importance'])
 
     return df_count, df_importance
+
 ########################################################################################################################
 
 #################################################### RAG QA 1 TO 1 #####################################################
@@ -744,20 +682,22 @@ async def search_keyword(files: List[UploadFile], keyword: str) -> Dict[str, Any
 async def concept_frequencies(files: List[UploadFile]):
 
     try:
-        return await concepts_frequencies_in_pdfs(files)
+        results = await concepts_frequencies_in_pdfs(files)
+        return {"status": "success", "message": "Concept frequencies extracted successfully.", "results": results}
     except Exception as e:
         return {"status": "fail", "message": f"Failed to extract concepts. Error ocurred: {e}"}
 
 
 @app.post("/topicmodeling/")
 async def topic_modeling(files: List[UploadFile]):
-    #try:
-        df_count, df_importance = topic_modeling_from_pdfs(files)
+    try:
+        df_count, df_importance = await topic_modeling_from_pdfs(files)
         count = df_count.to_dict(orient='records')
         importance = df_importance.to_dict(orient='records')
+        
         return {"status": "success", "message": "Topic modeling performed successfully.", "count": count, "importance": importance}
-    #except Exception as e:
-    #    return {"status": "fail", "message": f"Failed to perform topic modeling. Error ocurred: {e}"}
+    except Exception as e:
+        return {"status": "fail", "message": f"Failed to perform topic modeling. Error ocurred: {e}"}
 
 ########################################################################################################################
 # doc_id should be integer
