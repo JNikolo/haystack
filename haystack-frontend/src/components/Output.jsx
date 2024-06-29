@@ -1,9 +1,16 @@
 import React, { useState } from 'react';
+import NlpButtons from './NlpButtons';
+import KeywordCounting from './KeywordCount';
+import ConceptFreq from './ConceptFreq';
 import './Output.css';
+import TopicModeling from './TopicModeling';
 
-function Output({ activeButton, imageData }) {
+function Output({ activeButton, pdfList }) {
     const [question, setQuestion] = useState('');
     const [response, setResponse] = useState('');
+    const [activeButtonNlp, setActiveButtonNlp] = useState('left');
+    const [buttonClicked, setButtonClicked] = useState(false);
+
 
     const handleQuestionChange = (e) => {
         setQuestion(e.target.value);
@@ -16,14 +23,42 @@ function Output({ activeButton, imageData }) {
         setResponse(`You asked: "${question}"`);
     };
 
+    
+
+    const handleButtonClick = (nlpType) => {
+        setActiveButtonNlp(nlpType);
+        setButtonClicked(true);
+    };
+
+
+
     return (
         <div className="output-container">
-            {activeButton === 'left' && imageData && (
+            {activeButton === 'left' && (
                 <>
-                    <h2>Generated Plot</h2>
-                    <img src={`data:image/png;base64,${imageData}`} alt="Generated Plot" />
+                    <NlpButtons
+                        activeButtonNlp={activeButtonNlp}
+                        buttonClicked={buttonClicked}
+                        onButtonClick={handleButtonClick}
+                    />
+                    <div className='nlpOutput'>
+                        {activeButtonNlp === 'left' && (
+                            <KeywordCounting
+                                pdfList={pdfList}
+                            />
+                        )}
+                        {activeButtonNlp === 'middle' && (
+                            <ConceptFreq
+                            pdfList={pdfList}
+                            />
+                        )}
+                        {activeButtonNlp === 'right' && (
+                            <TopicModeling />
+                        )}
+                    </div>
                 </>
             )}
+            {/* // )} && <NlpOptions activeButton={activeButtonNlp} setActiveButton={setActiveButtonNlp} />} */}
             {activeButton === 'right' && (
                 <div className="question-section">
                     <h2>Ask a Question</h2>

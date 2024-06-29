@@ -1,0 +1,24 @@
+.nlpButtons{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    
+}
+
+.nlpButton {
+    margin: 15px;
+    width: 200px;
+    border:none;
+}
+
+.nlpButton:hover {
+    background-color: #ff006a;
+    color: white;
+    outline: none;
+} 
+
+.nlpButton.active {
+    background-color: #ff006a;
+    color: white;
+    outline: none;
+}

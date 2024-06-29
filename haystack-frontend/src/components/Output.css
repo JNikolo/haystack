@@ -1,6 +1,6 @@
 .output-container {
     width: 100%;
-    padding: 20px;
+    
 }
 
 .question-section {
@@ -57,9 +57,10 @@
     padding-top: 10px;
 }
 
-
-
-
-
-
-
+.nlpOutput {
+    background-color: white;
+    color:#007bff;
+    height: 80%;
+    overflow-y: auto;
+    margin: 15px;
+}

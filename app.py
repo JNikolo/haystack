@@ -175,7 +175,7 @@ def get_firebase_user_from_token(token):
         return jsonify({"message": str(e)}), 400 """
 
 #################################################### SUBMITING PDFS ####################################################
-def submit_docs_for_rag(submitted_pdf):
+def submit_docs_for_rag(submitted_pdf:UploadFile):
     #directory_path = pdf_directory
     #pdf = submitted_pdf
 
@@ -399,23 +399,27 @@ async def topic_modeling_from_pdfs(pdf_files: List[UploadFile]):
 ########################################################################################################################
 
 #################################################### RAG QA 1 TO 1 #####################################################
-def add_docs(chosen_pdf, pdf_directory, namespace, doc_id):
-    pdf = submit_docs_for_rag(chosen_pdf, pdf_directory)
+def add_docs(chosen_pdf:UploadFile, namespace:str, doc_id:int):
+    pdf = submit_docs_for_rag(chosen_pdf)
 
     # Create Weaviate vector store (database).
 #    client = weaviate.Client(
 #    embedded_options = EmbeddedOptions()
 #    )
     print(f"Creating vector store for {len(pdf)} chunks")
-        
+    
+
+    # Checking if pdf already exists in the database???????
+
+
     VECTOR_STORE.add_texts(
         texts = pdf,
         namespace = namespace,
-        metadatas = [{'doc_id' : doc_id} for i in pdf]
+        metadatas = [{'doc_id' : doc_id} for i in len(pdf)]
     )
 
 
-def Haystack_qa_1(chosen_pdf, pdf_directory, query: str, namespace, doc_id):
+def Haystack_qa_1(query: str, namespace:str, doc_id:int):
 
     #add_docs(chosen_pdf, pdf_directory)
     
@@ -700,12 +704,55 @@ async def topic_modeling(files: List[UploadFile]):
         return {"status": "fail", "message": f"Failed to perform topic modeling. Error ocurred: {e}"}
 
 ########################################################################################################################
-# doc_id should be integer
-@app.post("/qa_one")
-def qa_one(doc_id:str, query: str):
-    
-    reply = Haystack_qa_1('','', query, 'user_1', doc_id)
+from pydantic import BaseModel
+
+class UserPDF(BaseModel):
+    doc_id: int
+    pdf: UploadFile
+
+@app.delete("/delete_embeddings")
+def delete_embeddings(user_id: str):
+    """
+    Deletes the embeddings for the specified user.
+
+    Args:
+        user_id (str): The user ID for which to delete the embeddings.
+
+    Returns:
+        dict: A dictionary containing the status of the deletion process.
+    """
+    try:
+        VECTOR_STORE.delete(delete_all=True, namespace=user_id)
+        return {"status": "success", "message": "Embeddings deleted successfully."}
+    except Exception as e:
+        return {"status": "fail", "message": f"Failed to delete embeddings. Error ocurred: {e}"}
+
+@app.post("/add_embeddings/")
+def add_embeddings(pdf_list: List[UserPDF], user_id:str):
+    """
+    Adds the embeddings for the specified user.
+
+    Args:
+        user_id (str): The user ID for which to add the embeddings.
+
+    Returns:
+        dict: A dictionary containing the status of the addition process.
+    """
+    try:
+        for file in pdf_list:
+            add_docs(file.pdf, user_id, file.doc_id)
+        return {"status": "success", "message": "Embeddings added successfully."}
+    except Exception as e:
+        return {"status": "fail", "message": f"Failed to add embeddings. Error ocurred: {e}"}
+
+@app.post("/qa_one_many/")
+def qa_one(query: str, user_id: str, doc_ids:List[int]):
+    replies = []
+    for id in doc_ids:
+        reply = Haystack_qa_1(query, user_id, id)
+        replies.append(reply)
     return {"status":"success", 'result' : reply}
+
 
 #VECTOR_STORE.delete(delete_all=True, namespace="user_1")
 #add_docs("OWASP Application Security Verification Standard 4.0.3-en.pdf", "pdfs", 'user_1', 1)
