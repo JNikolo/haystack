@@ -87,3 +87,22 @@ li input[type="checkbox"]:checked + label::after {
     margin-bottom: 20px;
     white-space: nowrap; 
 }
+
+.remove-button {
+    margin-left: 10px;
+    display: none;
+    background-color: red;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 5px 10px;
+    cursor: pointer;
+}
+
+.remove-button:hover {
+    background-color: darkred;
+}
+
+.pdf-item:hover .remove-button {
+    display: inline-block;
+}

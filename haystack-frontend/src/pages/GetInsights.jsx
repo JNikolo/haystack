@@ -5,13 +5,13 @@ import Upload from "../components/Upload";
 import Output from "../components/Output";
 import Options from "../components/Options";
 import './GetInsights.css';
-import axios from 'axios';
 import { getPdfById, clearDatabase } from '../utils/indexedDB';
 
 function GetInsights() {
-    const [imageData, setImageData] = useState(null);
     const [loading, setLoading] = useState(false);
-    const [activeButton, setActiveButton] = useState('left'); 
+    const [activeButton, setActiveButton] = useState('left');
+    const [pdfList, setPdfList] = useState([]);
+
 
     useEffect(() => {
         const handleBeforeUnload = (event) => {
@@ -30,25 +30,48 @@ function GetInsights() {
     const handleSubmit = async (selectedPdfs) => {
         setLoading(true);
 
-        const formData = new FormData();
+        // const formData = new FormData();
+      
+        let newPdfList = [];
         for (let pdf of selectedPdfs) {
             const pdfRecord = await getPdfById(pdf.id);
-            formData.append('files', pdfRecord.file);
+            newPdfList.push(pdfRecord);
         }
 
-        try {
-            const response = await axios.post('http://localhost:8000/conceptsfrequencies/', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
-            setImageData(response.data.image_data);
-        } catch (error) {
-            console.error('Error uploading files:', error);
-        } finally {
-            setLoading(false);
-        }
+        setPdfList(newPdfList);
+
+        // call the API to populate vector db
+
+        setLoading(false);
+            
+        //     formData.append('files', pdfRecord.file);
+        //     console.log('pdf: ',formData);
+        //console.log(pdfList);
     };
+
+    const handleReset = async () => {
+        setLoading(true);
+        // await clearDatabase();
+        setPdfList([]);
+
+        // call API here to delete all vector DB records
+        
+        setLoading(false);
+    };
+    
+    const handlePdfRemoved = async (updatedPdfs) => {
+        const selectedPdfs = updatedPdfs.filter(pdf => pdf.selected);
+        setPdfList(selectedPdfs);
+
+        // call API here to delete specific vector DB record
+    };
+
+    const handleDeletePdf = async (id) => {
+        await deletePdfById(id);
+        const updatedPdfs = pdfList.filter(pdf => pdf.id !== id);
+        setPdfList(updatedPdfs);
+    };
+
 
     return (
         <>
@@ -57,7 +80,8 @@ function GetInsights() {
                 <div className="box upload-box">
                     <Upload 
                         loading={loading}
-                        handleSubmit={handleSubmit}
+                        onPdfRemoved={handlePdfRemoved}
+                        onDeletePdf={handleDeletePdf}
                     />
                 </div>
                 <div className="right-side">
@@ -65,7 +89,7 @@ function GetInsights() {
                         <Options activeButton={activeButton} setActiveButton={setActiveButton} />
                     </div>
                     <div className="box output-box">
-                        <Output activeButton={activeButton} imageData={imageData} />
+                        <Output activeButton={activeButton} pdfList={pdfList} />
                     </div>
                 </div>
             </div>

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { addPdfToDatabase, getAllPdfs } from '../utils/indexedDB';
+import { addPdfToDatabase, getAllPdfs, deletePdfById } from '../utils/indexedDB';
 import './Upload.css';
 
-function Upload({ loading, handleSubmit }) {
+function Upload({ loading, onPdfRemoved, onDeletePdf }) {
     const [pdfs, setPdfs] = useState([]);
+    //const [submitted, setSubmitted] = useState(false);
 
     useEffect(() => {
         loadPdfs();
@@ -22,8 +23,29 @@ function Upload({ loading, handleSubmit }) {
         loadPdfs();
     };
 
+    // const handleSubmitClick = async () => {
+    //     setSubmitted(true);
+    //     await handleSubmit(pdfs.filter(pdf => pdf.selected));
+    // };
+
+    // const handleCheckboxChange = (id) => {
+    //     setPdfs(pdfs.map(pdf => pdf.id === id ? { ...pdf, selected: !pdf.selected } : pdf));
+    // };
+
     const handleCheckboxChange = (id) => {
-        setPdfs(pdfs.map(pdf => pdf.id === id ? { ...pdf, selected: !pdf.selected } : pdf));
+        const updatedPdfs = pdfs.map(pdf => pdf.id === id ? { ...pdf, selected: !pdf.selected } : pdf);
+        setPdfs(updatedPdfs);
+        onPdfRemoved(updatedPdfs);
+    };
+
+
+    const handleRemovePdf = async (id) => {
+        await deletePdfById(id);
+        const updatedPdfs = pdfs.filter(pdf => pdf.id !== id);
+        setPdfs(updatedPdfs);
+
+        // Notify parent component (GetInsights) about the updated pdfList
+        onPdfRemoved(updatedPdfs);
     };
 
     return (
@@ -41,26 +63,24 @@ function Upload({ loading, handleSubmit }) {
             </label>
             <ul>
                 {pdfs.map((pdf) => (
-                    <li key={pdf.id}>
-                        <input
-                            type="checkbox"
-                            id={`checkbox-${pdf.id}`}
-                            checked={pdf.selected || false}
-                            onChange={() => handleCheckboxChange(pdf.id)}
-                        />
-                        <label htmlFor={`checkbox-${pdf.id}`}>{pdf.name}</label>
-                    </li>
+                        <li key={pdf.id} className="pdf-item">
+                            <input
+                                type="checkbox"
+                                id={`checkbox-${pdf.id}`}
+                                checked={pdf.selected || false}
+                                onChange={() => handleCheckboxChange(pdf.id)}
+                            />
+                            <label htmlFor={`checkbox-${pdf.id}`}>{pdf.name}</label>
+                            <button
+                                className="remove-button"
+                                onClick={() => handleRemovePdf(pdf.id)}
+                                disabled={loading}
+                            >
+                                X
+                            </button>
+                        </li>
                 ))}
             </ul>
-            {pdfs.length > 0 && (
-                <button
-                    className="submit-button"
-                    onClick={() => handleSubmit(pdfs.filter(pdf => pdf.selected))}
-                    disabled={loading}
-                >
-                    {loading ? 'Uploading...' : 'Submit'}
-                </button>
-            )}
         </div>
     );
 }

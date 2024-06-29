@@ -1,6 +1,6 @@
 .output-container {
     width: 100%;
-    padding: 20px;
+    
 }
 
 .question-section {
@@ -57,35 +57,10 @@
     padding-top: 10px;
 }
 
-.expandable-section {
-    width: 100%;
-    text-align: center;
-    margin-bottom: 10px;
-}
-
-.expand-button {
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    cursor: pointer;
-    border-radius: 5px;
-    font-size: 16px;
-    margin-bottom: 5px;
-}
-
-.expand-button:hover {
-    background-color: #45a049;
-}
-
-.keyword-count,
-.concept-freq,
-.topic-model {
-    padding: 10px;
-    background-color: #f0f0f0;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    margin-top: 5px;
-    overflow-y: auto; /* Enable vertical scroll if content exceeds height */
-    max-height: 200px; /* Limit maximum height for scrollable content */
+.nlpOutput {
+    background-color: white;
+    color:#007bff;
+    height: 80%;
+    overflow-y: auto;
+    margin: 15px;
 }
