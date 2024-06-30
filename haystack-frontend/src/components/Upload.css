@@ -12,13 +12,19 @@ label.file-input-label {
     cursor: pointer;
     font-size: 16px;
     margin-bottom: 20px;
+    left: 50%;
+    margin: 0;
+    position: absolute;
+    -ms-transform: translateX(-50%);
+    transform: translateX(-50%);
+    top:190px;
 }
 
 label.file-input-label:hover {
     background-color: #0056b3;
 }
 
-button.submit-button {
+/* button.submit-button {
     padding: 10px 20px;
     background-color: #28a745;
     color: white;
@@ -34,7 +40,7 @@ button.submit-button:disabled {
 
 button.submit-button:hover {
     background-color: #218838;
-}
+} */
 
 ul {
     list-style-type: none;
@@ -105,4 +111,31 @@ li input[type="checkbox"]:checked + label::after {
 
 .pdf-item:hover .remove-button {
     display: inline-block;
+}
+
+.pdf-list {
+    background-color: #8e959b89;
+    padding: 10px;
+    max-height: 200px; /* Set the maximum height for the div */
+    overflow-y: auto; /* Enable vertical scrolling */
+    overflow-x: hidden; /* Hide horizontal scrolling if not needed */
+}
+
+.uploaded-files{
+    top: 60vh;
+    margin-top: 30px;
+    padding: 0px 10px;
+}
+
+.file-drop-area {
+    border: 2px dashed #ccc;
+    padding: 10px;
+    margin: 10px;
+    height: 160px;
+    font-size: small;
+    
+}
+
+.file-drop-area.dragging {
+    background-color: #8e959bde;
 }

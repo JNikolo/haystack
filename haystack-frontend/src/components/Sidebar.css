@@ -1,0 +1,40 @@
+.sidebar {
+    position: absolute;
+    top: 70px; /* Adjust based on your header height */
+    left: 0;
+    width: 50px; /* default width for collapsed state */
+    padding: 20px 0;
+    transition: width 0.5s;
+    z-index: 1000;
+    background-color: rgba(255, 255, 255, 0.363);
+    height: 74vh;
+}
+
+.sidebar.expanded {
+    width: 300px; /* expanded width */
+}
+
+.sidebar.collapsed {
+    width: 52.5px;
+}
+
+.toggle-btn {
+    position: absolute;
+    top: 20px; /* Adjust based on your design */
+    right: -50px; /* Position the button outside the sidebar */
+    background: blue;
+    color: white;
+    border: none;
+    cursor: pointer;
+    padding: 10px;
+    transition: right 0.5s;
+    z-index: 1100; /* Ensure it's above the sidebar content */
+}
+
+.sidebar.expanded .toggle-btn {
+    right: 0px; /* Adjust position to align with expanded sidebar */
+}
+
+.sidebar.collapsed .toggle-btn {
+    right: 10px; /* Move the button outside the collapsed sidebar */
+}

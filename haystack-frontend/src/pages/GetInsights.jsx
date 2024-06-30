@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import Footer from "../components/Footer";
-import Upload from "../components/Upload";
+//import Upload from "../components/Upload";
 import Output from "../components/Output";
 import Options from "../components/Options";
+import Sidebar from "../components/Sidebar";
 import './GetInsights.css';
-import { getPdfById, clearDatabase } from '../utils/indexedDB';
+import { clearDatabase, getAllPdfs, deletePdfById, addPdfToDatabase } from '../utils/indexedDB';
 
 function GetInsights() {
     const [loading, setLoading] = useState(false);
     const [activeButton, setActiveButton] = useState('left');
     const [pdfList, setPdfList] = useState([]);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
 
     useEffect(() => {
@@ -27,64 +29,99 @@ function GetInsights() {
         };
     }, []);
 
-    const handleSubmit = async (selectedPdfs) => {
-        setLoading(true);
+    // const handleSubmit = async (selectedPdfs) => {
+    //     setLoading(true);
 
-        // const formData = new FormData();
+    //     // const formData = new FormData();
       
-        let newPdfList = [];
-        for (let pdf of selectedPdfs) {
-            const pdfRecord = await getPdfById(pdf.id);
-            newPdfList.push(pdfRecord);
-        }
+    //     let newPdfList = [];
+    //     for (let pdf of selectedPdfs) {
+    //         const pdfRecord = await getPdfById(pdf.id);
+    //         newPdfList.push(pdfRecord);
+    //     }
 
-        setPdfList(newPdfList);
+    //     setPdfList(newPdfList);
 
-        // call the API to populate vector db
+    //     // call the API to populate vector db
 
-        setLoading(false);
+    //     setLoading(false);
             
-        //     formData.append('files', pdfRecord.file);
-        //     console.log('pdf: ',formData);
-        //console.log(pdfList);
-    };
+    //     //     formData.append('files', pdfRecord.file);
+    //     //     console.log('pdf: ',formData);
+    //     //console.log(pdfList);
+    // };
 
-    const handleReset = async () => {
-        setLoading(true);
-        // await clearDatabase();
-        setPdfList([]);
+    // const handleReset = async () => {
+    //     setLoading(true);
+    //     // await clearDatabase();
+    //     setPdfList([]);
 
-        // call API here to delete all vector DB records
+    //     // call API here to delete all vector DB records
         
-        setLoading(false);
-    };
+    //     setLoading(false);
+    // };
     
-    const handlePdfRemoved = async (updatedPdfs) => {
-        const selectedPdfs = updatedPdfs.filter(pdf => pdf.selected);
-        setPdfList(selectedPdfs);
+    // const handleDeletePdf = async (id) => {
+    //     await deletePdfById(id);
+    //     const updatedPdfs = pdfList.filter(pdf => pdf.id !== id);
+    //     setPdfList(updatedPdfs);
+    // };
 
-        // call API here to delete specific vector DB record
+    const toggleSidebar = () => {
+        setIsSidebarOpen(!isSidebarOpen);
     };
 
-    const handleDeletePdf = async (id) => {
+    const loadPdfs = async () => {
+        const allPdfs = await getAllPdfs();
+        setPdfList(allPdfs);
+    };
+
+    // const handleFileChange = async (event) => {
+    //     const files = Array.from(event.target.files);
+    //     for (let file of files) {
+    //         await addPdfToDatabase(file);
+    //     }
+    //     loadPdfs();
+    // };
+
+    const handleFileChange = async () => {
+        await loadPdfs(); // Reload PDFs after file change
+    };
+
+    const handleCheckboxChange = (id) => {
+        const updatedPdfs = pdfList.map(pdf => pdf.id === id ? { ...pdf, selected: !pdf.selected } : pdf);
+        setPdfList(updatedPdfs);
+    };
+
+    const handleRemovePdf = async (id) => {
         await deletePdfById(id);
         const updatedPdfs = pdfList.filter(pdf => pdf.id !== id);
         setPdfList(updatedPdfs);
     };
-
-
+    
+    
     return (
         <>
             <Header />
             <div className="insights-container">
-                <div className="box upload-box">
+                <Sidebar 
+                    loading={loading}
+                    isExpanded={isSidebarOpen}
+                    toggleSidebar={toggleSidebar}
+                    pdfList={pdfList}
+                    onFileChange={handleFileChange}
+                    onCheckboxChange={handleCheckboxChange}
+                    onPdfRemove={handleRemovePdf}
+                />
+                {/* <div className="box upload-box">
                     <Upload 
                         loading={loading}
                         onPdfRemoved={handlePdfRemoved}
                         onDeletePdf={handleDeletePdf}
                     />
-                </div>
-                <div className="right-side">
+                </div> */}
+                {/* <div className="right-side"> */}
+                <div className={`main-content ${isSidebarOpen ? 'expanded' : ''}`}>
                     <div className="box options-box">
                         <Options activeButton={activeButton} setActiveButton={setActiveButton} />
                     </div>

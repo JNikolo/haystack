@@ -23,8 +23,11 @@ function ConceptFreq({ pdfList }) {
     const handleGeneratePlots = async () => {
         setIsLoading(true);
 
+        // Filter selected PDFs
+        const selectedPdfs = pdfList.filter(pdf => pdf.selected);
+
         const formData = new FormData();
-        for (let pdf of pdfList) {
+        for (let pdf of selectedPdfs) {
             formData.append('files', pdf.file);
         }
 
@@ -120,7 +123,7 @@ function ConceptFreq({ pdfList }) {
     return (
         <div className="concept-freq">
             <h2>Concept Frequency</h2>
-            <button onClick={handleGeneratePlots} disabled={isLoading || pdfList.length === 0}>
+            <button onClick={handleGeneratePlots} disabled={isLoading || !(pdfList.some(pdf => pdf.selected))}>
                 Generate Plot
             </button>
             

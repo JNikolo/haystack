@@ -5,9 +5,13 @@ body {
 
 .insights-container {
     display: flex;
-    height: 60vh;
+    justify-content: center; /* Center the main content */
+    align-items: flex-start;
+    height: 80vh;
+    width: 100vw;
+    /* height: 60vh;
     padding: 20px;
-    width: 90vw;
+    width: 90vw; */
 }
 
 .box {
@@ -18,17 +22,28 @@ body {
     padding: 20px;
 }
 
-.upload-box {
+/* .upload-box {
     margin-right: 10px;
     width: 30%;
+} */
+
+.main-content {
+    flex: 1;
+    padding: 20px;
+    transition: margin-left 0.3s;
+    max-width: 1000px; /* Maximum width for the main content */
+    height: 50vh;
 }
 
-.right-side {
+.main-content.expanded {
+    margin-left: 250px;
+}
+/* .right-side {
     display: flex;
     flex-direction: column;
     height: 100%;
     width: 70%;
-}
+} */
 
 .options-box {
     height: 10%;

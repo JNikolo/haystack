@@ -11,8 +11,11 @@ function KeywordCounting({ pdfList }) {
         e.preventDefault();
         setIsLoading(true);
 
+        // Filter selected PDFs
+        const selectedPdfs = pdfList.filter(pdf => pdf.selected);
+
         const formData = new FormData();
-        for (let pdf of pdfList) {
+        for (let pdf of selectedPdfs) {
             formData.append('files', pdf.file);
         }
 
@@ -76,9 +79,9 @@ function KeywordCounting({ pdfList }) {
                     placeholder="Type your keyword here"
                     className="keyword-input"
                     rows={1}
-                    disabled={isLoading || !(pdfList.length > 0)} // Disable textarea when loading or no PDFs selected
+                    disabled={isLoading || !(pdfList.some(pdf => pdf.selected))} // Disable textarea when loading or no PDFs selected
                 />
-                <button type="submit" className="keyword-submit" disabled={isLoading || !(pdfList.length > 0)}>
+                <button type="submit" className="keyword-submit" disabled={isLoading || !(pdfList.some(pdf => pdf.selected))}>
                     {isLoading ? 'Counting...' : 'Submit'}
                 </button>
             </form>
