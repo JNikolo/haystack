@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { addPdfToDatabase, getAllPdfs, deletePdfById } from '../utils/indexedDB';
 import './Upload.css';
 
+const MAX_TOTAL_SIZE = 20 * 1024 * 1024; // 20MB
+
 function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove }) {
     // const [pdfs, setPdfs] = useState([]);
     // //const [submitted, setSubmitted] = useState(false);
@@ -49,6 +51,17 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
     // };
 
     const [dragging, setDragging] = useState(false);
+    const [pdfsTotalSize, setPdfsTotalSize] = useState(0);
+
+    const checkTotalSize = async (files) => {
+        const totalSize = files.reduce((acc, file) => acc + file.size, 0);
+        if (totalSize + pdfsTotalSize > MAX_TOTAL_SIZE) {
+            alert('Total size of PDFs exceeds 20MB');
+            return false;
+        }
+        setPdfsTotalSize(totalSize + pdfsTotalSize);
+        return true;
+    };
 
     const handleDragEnter = (event) => {
         event.preventDefault();
@@ -70,6 +83,16 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
         setDragging(false);
 
         const files = Array.from(event.dataTransfer.files);
+
+        const allPdfs = files.every(file => file.type === 'application/pdf');
+        if (!allPdfs) {
+            alert('Only PDF files are accepted.');
+            return;
+        }
+
+        if (!await checkTotalSize(files)) {
+            return;
+        }
         for (let file of files) {
             await addPdfToDatabase(file);
         }
@@ -78,6 +101,9 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
 
     const handleFileInputChange = async (event) => {
         const files = Array.from(event.target.files);
+        if (!await checkTotalSize(files)) {
+            return;
+        }
         for (let file of files) {
             await addPdfToDatabase(file);
         }
