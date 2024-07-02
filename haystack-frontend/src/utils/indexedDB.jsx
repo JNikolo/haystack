@@ -2,6 +2,29 @@ const DB_NAME = 'myDatabase';
 const DB_VERSION = 1;
 const STORE_NAME = 'pdfs';
 
+export const generateFileHash = (file) => {
+    return new Promise((resolve, reject) => {
+        const fr = new FileReader();
+
+        fr.onload = async () => {
+            try {
+                const hashBuffer = await crypto.subtle.digest('SHA-256', fr.result);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                resolve(hashHex);
+            } catch (error) {
+                reject(error);
+            }
+        };
+
+        fr.onerror = (error) => {
+            reject(error);
+        };
+
+        fr.readAsArrayBuffer(file);
+    });
+};
+
 export function openDatabase() {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -24,11 +47,14 @@ export function openDatabase() {
 }
 
 export function addPdfToDatabase(file) {
-    return openDatabase().then((db) => {
+    return openDatabase().then(async (db) => {
+        const hash = await generateFileHash(file);
+
         return new Promise((resolve, reject) => {
             const transaction = db.transaction(STORE_NAME, 'readwrite');
             const store = transaction.objectStore(STORE_NAME);
-            const request = store.add({ name: file.name, file: file });
+
+            const request = store.add({ name: file.name, file: file, hash: hash });
 
             request.onsuccess = () => {
                 resolve(request.result);
@@ -112,4 +138,5 @@ export function deletePdfById(id) {
         });
     });
 }
+
 

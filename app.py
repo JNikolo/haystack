@@ -1,17 +1,13 @@
-import base64
-from fastapi import FastAPI, UploadFile
+from fastapi import FastAPI, UploadFile, Form, File
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Any, Dict, Tuple
 
 #useful libraries
 from fastapi.responses import HTMLResponse
-import requests
-import sys
 from icecream import ic
 import pprint
 from pypdf import PdfReader
 import os
-import pymupdf
 
 from dotenv import load_dotenv
 
@@ -62,35 +58,22 @@ from gensim.parsing.preprocessing import preprocess_string
 from gensim.corpora import Dictionary
 from gensim.models import LdaModel
 
-#mongo
-from pymongo import MongoClient
-
 #pinecone
 from langchain_pinecone import PineconeVectorStore
-
-#custom
-#from HaystackRetriever import HaystackRetriever
 
 import firebase_admin
 from firebase_admin.auth import verify_id_token
 
 load_dotenv()
 
-
-
 #Configure gemini api
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 genai.configure(api_key=GOOGLE_API_KEY)
-
-MONGO_URI = os.getenv('MONGO_URI')
-cluster = MongoClient(MONGO_URI)
 
 DB_NAME = 'pdfs'
 COLLECTION_NAME = 'pdfs_collection'
 #NAMESPACE = 'pdfs.pdfs_collection'
 
-
-MONGODB_COLLECTION = cluster[DB_NAME][COLLECTION_NAME]
 vector_search_index = "vector_index"
 
 
@@ -104,16 +87,6 @@ embeddings = HuggingFaceEmbeddings(
     model_name=model_name,
     model_kwargs=model_kwargs,
 )
-
-'''
-VECTOR_STORE = MongoDBAtlasVectorSearch.from_connection_string(
-    connection_string = MONGO_URI,
-    namespace = NAMESPACE,
-    embedding = embeddings,
-    index_name = vector_search_index
-)
-'''
-
 
 INDEX_NAME = 'haystack'
 
@@ -214,8 +187,9 @@ def submit_docs_for_rag(submitted_pdf:UploadFile):
 
 NLP = spacy.load("en_core_web_sm")
 PARSER = English()
-EN_STOP = set(nltk.corpus.stopwords.words('english'))
 nltk.download('stopwords')
+EN_STOP = set(nltk.corpus.stopwords.words('english'))
+#nltk.download('stopwords')
 nltk.download('wordnet')
 
 async def get_list_raw_text(pdf_files: List[UploadFile]) -> List[str]:
@@ -415,7 +389,7 @@ def add_docs(chosen_pdf:UploadFile, namespace:str, doc_id:int):
     VECTOR_STORE.add_texts(
         texts = pdf,
         namespace = namespace,
-        metadatas = [{'doc_id' : doc_id} for i in len(pdf)]
+        metadatas = [{'doc_id' : doc_id} for _ in range(len(pdf))]
     )
 
 
@@ -705,12 +679,7 @@ async def topic_modeling(files: List[UploadFile]):
 
 ########################################################################################################################
 from pydantic import BaseModel
-
-class UserPDF(BaseModel):
-    doc_id: int
-    pdf: UploadFile
-
-@app.delete("/delete_embeddings")
+@app.delete("/delete_embeddings/")
 def delete_embeddings(user_id: str):
     """
     Deletes the embeddings for the specified user.
@@ -728,30 +697,37 @@ def delete_embeddings(user_id: str):
         return {"status": "fail", "message": f"Failed to delete embeddings. Error ocurred: {e}"}
 
 @app.post("/add_embeddings/")
-def add_embeddings(pdf_list: List[UserPDF], user_id:str):
-    """
-    Adds the embeddings for the specified user.
-
-    Args:
-        user_id (str): The user ID for which to add the embeddings.
-
-    Returns:
-        dict: A dictionary containing the status of the addition process.
-    """
+async def add_embeddings(
+    user_id: str = Form(...),
+    pdf_list: List[UploadFile] = File(...),
+    doc_ids: List[str] = Form(...),
+):
     try:
-        for file in pdf_list:
-            add_docs(file.pdf, user_id, file.doc_id)
+        print(f"Received user_id: {user_id}")
+        print(f"Received doc_ids: {doc_ids}")
+        print(f"Number of files: {len(pdf_list)}")
+        for file, doc_id in zip(pdf_list, doc_ids):
+            add_docs(file, user_id, doc_id)  
         return {"status": "success", "message": "Embeddings added successfully."}
     except Exception as e:
-        return {"status": "fail", "message": f"Failed to add embeddings. Error ocurred: {e}"}
+        return {"status": "fail", "message": f"Failed to add embeddings. Error occurred: {e}"}
 
-@app.post("/qa_one_many/")
-def qa_one(query: str, user_id: str, doc_ids:List[int]):
+class QueryModel(BaseModel):
+    query: str
+    user_id: str
+    doc_ids: List[str]
+
+@app.post("/qa_rag/")
+def qa_rag(query_model: QueryModel):
+    query = query_model.query
+    user_id = query_model.user_id
+    doc_ids = query_model.doc_ids
     replies = []
     for id in doc_ids:
         reply = Haystack_qa_1(query, user_id, id)
         replies.append(reply)
-    return {"status":"success", 'result' : reply}
+    return {"status":"success", 'result' : replies}
+
 
 
 #VECTOR_STORE.delete(delete_all=True, namespace="user_1")

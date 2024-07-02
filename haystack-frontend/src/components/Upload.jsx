@@ -1,55 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { addPdfToDatabase, getAllPdfs, deletePdfById } from '../utils/indexedDB';
+import { addPdfToDatabase, generateFileHash, getAllPdfs} from '../utils/indexedDB';import { auth } from '../firebase/config';
 import './Upload.css';
 
-const MAX_TOTAL_SIZE = 20 * 1024 * 1024; // 20MB
+const MAX_TOTAL_SIZE = 200 * 1024 * 1024; // 20MB
 
 function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove }) {
-    // const [pdfs, setPdfs] = useState([]);
-    // //const [submitted, setSubmitted] = useState(false);
-
-    // useEffect(() => {
-    //     loadPdfs();
-    // }, []);
-
-    // const loadPdfs = async () => {
-    //     const allPdfs = await getAllPdfs();
-    //     setPdfs(allPdfs);
-    // };
-
-    // const handleFileChange = async (event) => {
-    //     const files = Array.from(event.target.files);
-    //     for (let file of files) {
-    //         await addPdfToDatabase(file);
-    //     }
-    //     loadPdfs();
-    // };
-
-    // // const handleSubmitClick = async () => {
-    // //     setSubmitted(true);
-    // //     await handleSubmit(pdfs.filter(pdf => pdf.selected));
-    // // };
-
-    // // const handleCheckboxChange = (id) => {
-    // //     setPdfs(pdfs.map(pdf => pdf.id === id ? { ...pdf, selected: !pdf.selected } : pdf));
-    // // };
-
-    // const handleCheckboxChange = (id) => {
-    //     const updatedPdfs = pdfs.map(pdf => pdf.id === id ? { ...pdf, selected: !pdf.selected } : pdf);
-    //     setPdfs(updatedPdfs);
-    //     onPdfRemoved(updatedPdfs);
-    // };
-
-
-    // const handleRemovePdf = async (id) => {
-    //     await deletePdfById(id);
-    //     const updatedPdfs = pdfs.filter(pdf => pdf.id !== id);
-    //     setPdfs(updatedPdfs);
-
-    //     // Notify parent component (GetInsights) about the updated pdfList
-    //     onPdfRemoved(updatedPdfs);
-    // };
-
     const [dragging, setDragging] = useState(false);
     const [pdfsTotalSize, setPdfsTotalSize] = useState(0);
 
@@ -100,10 +55,67 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
     };
 
     const handleFileInputChange = async (event) => {
+        const user = auth.currentUser;
+        if (!user) {
+            console.error('User not authenticated');
+            return;
+        }
+
+        const user_id = user.uid;
+        const formData = new FormData();
+
         const files = Array.from(event.target.files);
         if (!await checkTotalSize(files)) {
             return;
         }
+        const allPdfs = await getAllPdfs();
+
+        
+
+        files.forEach((file) => {
+            formData.append('pdf_list', file);
+            formData.append('doc_ids', file.name); // Assuming doc_id is just the index for this example
+        });
+        formData.append('user_id', user_id);
+
+        for (let file of files) {
+            const hash = await generateFileHash(file);
+            if (allPdfs.some(pdf => pdf.hash === hash)) {
+                alert('File already uploaded');
+                return;
+            }
+        }
+
+        // Debugging: Log FormData entries
+        for (let [key, value] of formData.entries()) {
+            console.log(`${key}: ${value}`);
+        }
+
+        try {
+            const response = await fetch('http://localhost:8000/add_embeddings/', { // Replace with your backend URL
+                method: 'POST',
+                body: formData,
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Success:', data.message);
+                // Perform any additional actions needed upon success
+            } else {
+                const errorData = await response.json();
+                console.error('Error:', errorData.message);
+                // Handle the error accordingly
+            }
+        } catch (error) {
+            console.error('Error:', error.message);
+            // Handle the error accordingly
+        }
+
+        // Check file size and add to database
+        if (!await checkTotalSize(files)) {
+            return;
+        }
+
         for (let file of files) {
             await addPdfToDatabase(file);
         }
