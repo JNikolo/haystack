@@ -4,6 +4,7 @@ import { auth } from "../firebase/config";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import "./SignIn.css";
+import Header from '../components/Header';
 
 function SignIn() {
     const [signIn, toggle] = useState(true);
@@ -39,6 +40,8 @@ function SignIn() {
     };
 
     return (
+        <>
+        <Header/>
         <div className="container">
             <div className={`sign-up-container ${signIn ? "" : "active"}`}>
                 <form className="form" onSubmit={handleSignUp}>
@@ -82,6 +85,7 @@ function SignIn() {
                 </div>
             </div>
         </div>
+        </>
     );
 }
 

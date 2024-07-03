@@ -6,26 +6,31 @@
     justify-content: space-between;
     align-items: center;
     overflow: hidden;
+    border:none;
 }
 
 .option-button {
     flex: 1;
-    background-color: #555;
+    background-color: white;
     border: none;
-    color: white;
+    color: black;
     font-size: 30px;
     padding: 20px;
     cursor: pointer;
     z-index: 1;
     transition: background-color 0.3s;
+    border-radius: 5px;
 }
 
 .option-button.active {
-    background-color: #ff006a;
+    background-color: rgb(51 65 85);
+    color: white;
+    border: none;
 }
 
 .option-button:first-child {
-    border-right: 1px solid #444;
+    border-right: 1px solid white;
+    border:none;
 }
 
 .toggle-indicator {

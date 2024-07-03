@@ -1,10 +1,10 @@
 .header-container {
     width: 100vw;
-    height: 10vh;
+    height: 100px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: white;
+    background-color: #0f172a;
     margin-top: 0;
     position: fixed;
     top: 0;
@@ -13,28 +13,46 @@
 }
 
 .brand-container, .button-container {
-    height: 100%; /* Set the height to 100% of the header */
     display: flex;
     align-items: center; /* Center the content vertically */
 }
 
 .brand-container {
-    background-color: orange; 
-    padding: 0 1rem; /* Adjust padding to prevent overflow */
-}
+    margin-left: 20px;
+} 
+
 
 .button-container {
-    background-color: orangered;
-    padding: 0 1rem; /* Adjust padding to prevent overflow */
+    background-color: white;
+    padding-left: 5px;
+    padding-right: 5px;
+    border-radius: 5px; /* Adjust padding to prevent overflow */
+    margin-right: 20px;
+    border: none;
+    text-decoration: none;
 }
 
-h1 {
+.button-container:hover{
+    background-color: rgb(51 65 85);
+    color: white; 
+}
+
+.button-container:hover a {
+    color: white;
+}
+
+p {
     margin: 0; /* Remove default margin */
+    font-size: 25px;
 }
 
 a {
-    color: white; /* Ensure link text is visible */
+    /*color: white; /* Ensure link text is visible */
     text-decoration: none;
+}
+
+Link{
+    text-decoration: none
 }
 
 
