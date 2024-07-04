@@ -6,11 +6,11 @@ import ConceptFreq from './ConceptFreq';
 import './Output.css';
 import TopicModeling from './TopicModeling';
 
-function Output({ activeButton, pdfList }) {
+function Output({ activeButton, selectedPdfs }) {
     const [question, setQuestion] = useState('');
     const [response, setResponse] = useState(null);
     const [activeButtonNlp, setActiveButtonNlp] = useState('left');
-    const [buttonClicked, setButtonClicked] = useState(false);
+    const [buttonClicked, setButtonClicked] = useState(true);
 
     const handleQuestionChange = (e) => {
         setQuestion(e.target.value);
@@ -56,10 +56,10 @@ function Output({ activeButton, pdfList }) {
         }
     };
 
-    const handleButtonClick = (nlpType) => {
-        setActiveButtonNlp(nlpType);
+    const handleButtonClick = async (nlpType) => {
+        await setActiveButtonNlp(nlpType);
         setButtonClicked(true);
-    };
+    };    
 
     const renderResponse = () => {
         if (!response) {
@@ -133,12 +133,12 @@ function Output({ activeButton, pdfList }) {
                     <div className='nlpOutput'>
                         {activeButtonNlp === 'left' && (
                             <KeywordCounting
-                                pdfList={pdfList}
+                                selectedPdfs={selectedPdfs}
                             />
                         )}
                         {activeButtonNlp === 'middle' && (
                             <ConceptFreq
-                            pdfList={pdfList}
+                                selectedPdfs={selectedPdfs}
                             />
                         )}
                         {activeButtonNlp === 'right' && (

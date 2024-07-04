@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { addPdfToDatabase, generateFileHash, getAllPdfs} from '../utils/indexedDB';import { auth } from '../firebase/config';
+import { addPdfToDatabase, generateFileHash, getAllPdfs, deletePdfById} from '../utils/indexedDB';
+import { auth } from '../firebase/config';
 import './Upload.css';
 
 const MAX_TOTAL_SIZE = 200 * 1024 * 1024; // 20MB
@@ -7,6 +8,7 @@ const MAX_TOTAL_SIZE = 200 * 1024 * 1024; // 20MB
 function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove }) {
     const [dragging, setDragging] = useState(false);
     const [pdfsTotalSize, setPdfsTotalSize] = useState(0);
+    const hashList = [];
 
     const checkTotalSize = async (files) => {
         const totalSize = files.reduce((acc, file) => acc + file.size, 0);
@@ -54,6 +56,12 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
         onFileChange();
     };
 
+    // const removeDuplicates = (pdfList) => {
+    //     const pdfs = pdfList.filter((pdf, index, self) => index === self.findIndex((t) => (t.hash === pdf.hash)));
+    //     console.log(pdfs);
+    //     return pdfs;
+    // };
+
     const handleFileInputChange = async (event) => {
         const user = auth.currentUser;
         if (!user) {
@@ -68,57 +76,62 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
         if (!await checkTotalSize(files)) {
             return;
         }
-        const allPdfs = await getAllPdfs();
-
-        
-
+    
         files.forEach((file) => {
             formData.append('pdf_list', file);
             formData.append('doc_ids', file.name); // Assuming doc_id is just the index for this example
         });
         formData.append('user_id', user_id);
+        
 
+        const allPdfs = await getAllPdfs();
         for (let file of files) {
             const hash = await generateFileHash(file);
-            if (allPdfs.some(pdf => pdf.hash === hash)) {
-                alert('File already uploaded');
-                return;
+            
+            if (hashList.includes(hash) || allPdfs.some(pdf => pdf.hash === hash)){
+                alert(`${file.name} is a duplicate. Skipping...`);
+                continue;
+            }
+            else{
+                hashList.push(hash);
+                await addPdfToDatabase(file);
             }
         }
 
+        
         // Debugging: Log FormData entries
         for (let [key, value] of formData.entries()) {
             console.log(`${key}: ${value}`);
         }
 
-        try {
-            const response = await fetch('http://localhost:8000/add_embeddings/', { // Replace with your backend URL
-                method: 'POST',
-                body: formData,
-            });
+        // try {
+        //     const response = await fetch('http://localhost:8000/add_embeddings/', { // Replace with your backend URL
+        //         method: 'POST',
+        //         body: formData,
+        //     });
 
-            if (response.ok) {
-                const data = await response.json();
-                console.log('Success:', data.message);
-                // Perform any additional actions needed upon success
-            } else {
-                const errorData = await response.json();
-                console.error('Error:', errorData.message);
-                // Handle the error accordingly
-            }
-        } catch (error) {
-            console.error('Error:', error.message);
-            // Handle the error accordingly
-        }
+        //     if (response.ok) {
+        //         const data = await response.json();
+        //         console.log('Success:', data.message);
+        //         // Perform any additional actions needed upon success
+        //     } else {
+        //         const errorData = await response.json();
+        //         console.error('Error:', errorData.message);
+        //         // Handle the error accordingly
+        //     }
+        // } catch (error) {
+        //     console.error('Error:', error.message);
+        //     // Handle the error accordingly
+        // }
 
-        // Check file size and add to database
-        if (!await checkTotalSize(files)) {
-            return;
-        }
+        // // Check file size and add to database
+        // if (!await checkTotalSize(files)) {
+        //     return;
+        // }
 
-        for (let file of files) {
-            await addPdfToDatabase(file);
-        }
+        // for (let file of files) {
+        //     await addPdfToDatabase(file);
+        // }
         onFileChange();
     };
 
@@ -136,20 +149,22 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
                 <p>Drag & Drop files here</p>
                 <p>Limit 200MB in total</p>
                 <p>Only .pdf accepted</p>
+
+                <input
+                    type="file"
+                    multiple
+                    accept="application/pdf"
+                    id="file-input"
+                    onChange={handleFileInputChange}
+                    style={{ display: 'none' }} // Hide the file input visually
+                />
+                <label className="file-input-label" htmlFor="file-input">
+                    Browse
+                </label>
             </div>
 
             {/* File Input for Browse Button */}
-            <input
-                type="file"
-                multiple
-                accept="application/pdf"
-                id="file-input"
-                onChange={handleFileInputChange}
-                style={{ display: 'none' }} // Hide the file input visually
-            />
-            <label className="file-input-label" htmlFor="file-input">
-                Browse
-            </label>
+            
             <div className="uploaded-files">
                 {pdfList.length === 0 && <p>No PDFs uploaded yet</p>}
                 {pdfList.length > 0 && (
@@ -163,7 +178,7 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
                                             type="checkbox"
                                             id={`checkbox-${pdf.id}`}
                                             checked={pdf.selected || false}
-                                            onChange={() => onCheckboxChange(pdf.id)}
+                                            onChange={(event) => onCheckboxChange(event, pdf.id)}
                                         />
                                         <label htmlFor={`checkbox-${pdf.id}`}>{pdf.name}</label>
                                         <button

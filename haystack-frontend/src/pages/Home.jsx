@@ -4,7 +4,7 @@ import Footer from "../components/Footer";
 import homelogo from '../assets/homelogo.png'; 
 import './Home.css';
 
-function Home() {
+function Home({}) {
     return (
         <>
             <Header></Header>

@@ -4,7 +4,7 @@ import Footer from "../components/Footer";
 //import Upload from "../components/Upload";
 import Output from "../components/Output";
 import Options from "../components/Options";
-import Sidebar from "../components/Sidebar";
+import Upload from "../components/Upload";
 import './GetInsights.css';
 import { clearDatabase, getAllPdfs, deletePdfById, addPdfToDatabase } from '../utils/indexedDB';
 
@@ -13,6 +13,7 @@ function GetInsights() {
     const [activeButton, setActiveButton] = useState('left');
     const [pdfList, setPdfList] = useState([]);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [selectedPdfs, setSelectedPdfs] = useState([]);
 
 
     useEffect(() => {
@@ -88,9 +89,19 @@ function GetInsights() {
         await loadPdfs(); // Reload PDFs after file change
     };
 
-    const handleCheckboxChange = (id) => {
+    const handleCheckboxChange = (event, id) => {
+        console.log('event: ', event.target.checked);
+        if (event.target.checked) {
+            setSelectedPdfs([...selectedPdfs, id]);
+        }
+        else {
+            setSelectedPdfs(selectedPdfs.filter(pdfId => pdfId !== id));
+        }
+        console.log('id: ', id);
         const updatedPdfs = pdfList.map(pdf => pdf.id === id ? { ...pdf, selected: !pdf.selected } : pdf);
+        console.log('updatedPdfs: ', updatedPdfs[0].selected);
         setPdfList(updatedPdfs);
+
     };
 
     const handleRemovePdf = async (id) => {
@@ -102,9 +113,23 @@ function GetInsights() {
     
     return (
         <>
-            <Header />
+            <Header/>
             <div className="insights-container">
-                <Sidebar 
+                <div className={`sidebar ${isSidebarOpen ? 'expanded' : 'collapsed'}`}>
+                    <button className="toggle-btn" onClick={toggleSidebar}>
+                        {isSidebarOpen ? '<' : '>'}
+                    </button>
+                    {isSidebarOpen && (
+                        <Upload
+                            loading={loading}
+                            pdfList={pdfList}
+                            onFileChange={handleFileChange}
+                            onCheckboxChange={handleCheckboxChange}
+                            onPdfRemove={handleRemovePdf}
+                        />
+                    )}
+                </div>
+                {/* <Sidebar 
                     loading={loading}
                     isExpanded={isSidebarOpen}
                     toggleSidebar={toggleSidebar}
@@ -112,7 +137,7 @@ function GetInsights() {
                     onFileChange={handleFileChange}
                     onCheckboxChange={handleCheckboxChange}
                     onPdfRemove={handleRemovePdf}
-                />
+                /> */}
                 {/* <div className="box upload-box">
                     <Upload 
                         loading={loading}
@@ -126,7 +151,7 @@ function GetInsights() {
                         <Options activeButton={activeButton} setActiveButton={setActiveButton} />
                     </div>
                     <div className="box output-box">
-                        <Output activeButton={activeButton} pdfList={pdfList} />
+                        <Output activeButton={activeButton} selectedPdfs={selectedPdfs} />
                     </div>
                 </div>
             </div>

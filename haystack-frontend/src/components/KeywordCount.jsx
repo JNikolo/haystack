@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import './KeywordCount.css';
+import { getPdfById } from '../utils/indexedDB';
 
-function KeywordCounting({ pdfList }) {
+function KeywordCounting({ selectedPdfs }) {
     const [keyword, setKeyword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [apiResponse, setApiResponse] = useState(null);
@@ -12,12 +13,21 @@ function KeywordCounting({ pdfList }) {
         setIsLoading(true);
 
         // Filter selected PDFs
-        const selectedPdfs = pdfList.filter(pdf => pdf.selected);
+        //const selectedPdfs = pdfList.filter(pdf => pdf.selected);
+
+        // Create a FormData object to send the selected PDFs
 
         const formData = new FormData();
-        for (let pdf of selectedPdfs) {
+        // for (let pdf of selectedPdfs) {
+        //     formData.append('files', pdf.file);
+        // }
+
+        for (let pdfID of selectedPdfs) {
+            const pdf = await getPdfById(pdfID);
             formData.append('files', pdf.file);
         }
+
+
 
         try {
             const response = await fetch(`http://127.0.0.1:8000/searchkeyword/?keyword=${keyword}`, {
@@ -79,10 +89,10 @@ function KeywordCounting({ pdfList }) {
                     placeholder="Type your keyword here"
                     className="keyword-input"
                     rows={1}
-                    disabled={isLoading || !(pdfList.some(pdf => pdf.selected))} // Disable textarea when loading or no PDFs selected
+                    disabled={isLoading || !(selectedPdfs.length > 0)} // Disable textarea when loading or no PDFs selected
                 />
             </form>
-            <button type="submit" className="keyword-submit" disabled={isLoading || !(pdfList.some(pdf => pdf.selected))}>
+            <button type="submit" className="keyword-submit" disabled={isLoading || !(selectedPdfs.length > 0)}>
                     {isLoading ? 'Counting...' : 'Submit'}
             </button>
             {error && <p className="error-message">{error}</p>}
