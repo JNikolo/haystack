@@ -41,7 +41,7 @@ function SignIn() {
 
     return (
         <>
-        <Header/>
+        <Header></Header>
         <div className="container">
             <div className={`sign-up-container ${signIn ? "" : "active"}`}>
                 <form className="form" onSubmit={handleSignUp}>
@@ -74,7 +74,7 @@ function SignIn() {
                         </button>
                     </div>
                     <div className={`overlay-panel right-overlay-panel ${signIn ? "" : "active"}`}>
-                        <h1 className="title">Hello, Friend!</h1>
+                        <h1 className="title">Hello!</h1>
                         <p className="paragraph">
                             New to our site? Sign up to start your journey.
                         </p>

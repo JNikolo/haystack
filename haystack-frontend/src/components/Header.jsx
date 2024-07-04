@@ -7,12 +7,22 @@ function Header() {
         <div className='header-container'>
                 <div className='brand-container'>
                     <Link to="/">
-                        <img src='../H-logo.png' width={60} height={60} />
+                        <img src='../H-logo.png' width={40} height={40} />
                     </Link>
+                    <p className='navButtons'>
+                        <Link className='button-container' to='/'>
+                            FAQ
+                        </Link>
+                        <Link className='button-container' to='/getinsights'>
+                            Insights
+                        </Link>
+                    </p>
                 </div>
-                <p className='button-container'>
-                    <Link to="/signin">Sign In</Link>
+                
+                <p>
+                    <Link className='button-container' to="/signin">Sign In</Link>
                 </p>
+            
         </div>
     );
 }

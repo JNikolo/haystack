@@ -11,14 +11,12 @@ body, html {
 
 .container {
     background-color: #fff;
-    border-radius: 10px;
-    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22);
     position: relative;
     overflow: hidden;
     width: 100vw;
-    height: 100vh;
+    height: 94vh;
     max-width: 100%;
-    min-height: 100%;
+    margin-top: 6vh;
 }
 
 .sign-up-container, .sign-in-container {
@@ -76,16 +74,18 @@ body, html {
 }
 
 .button {
-    border-radius: 20px;
-    border: 1px solid #ff4b2b;
-    background-color: #ff4b2b;
+    margin-top:10px;
+    border-radius: 5px;
+    background-color: rgb(51 65 85);
     color: #ffffff;
-    font-size: 12px;
-    font-weight: bold;
-    padding: 12px 45px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    transition: transform 80ms ease-in;
+    font-size: 20px;
+    padding: 10px 20px;
+    cursor: pointer;
+}
+
+.button:hover{
+    background-color: white;
+    color: black;
 }
 
 .button:active {
@@ -97,15 +97,19 @@ body, html {
 }
 
 .ghost-button {
-    background-color: transparent;
-    border-color: #ffffff;
-    color: #ffffff;
-    border: 1px solid #ffffff;
-    transition: background-color 0.3s ease;
+    background-color: white;
+    color: black;
+    font-size: 20px;
+    padding: 10px 20px;
+    cursor: pointer;
+    border-radius: 5px;
+    border: none;
+    margin-top: 15px;
 }
 
 .ghost-button:hover {
-    background-color: rgba(255, 255, 255, 0.3);
+    background-color: rgb(51 65 85);
+    color: white;
 }
 
 .anchor {
@@ -131,9 +135,9 @@ body, html {
 }
 
 .overlay {
-    background: #ff416c;
-    background: -webkit-linear-gradient(to right, #ff4b2b, #ff416c);
-    background: linear-gradient(to right, #ff4b2b, #ff416c);
+    background: #0f172a;
+    /* background: -webkit-linear-gradient(to right, #ff4b2b, #ff416c);
+    background: linear-gradient(to right, #ff4b2b, #ff416c); */
     background-repeat: no-repeat;
     background-size: cover;
     background-position: 0 0;

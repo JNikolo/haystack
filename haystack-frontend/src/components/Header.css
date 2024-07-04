@@ -1,6 +1,6 @@
 .header-container {
     width: 100vw;
-    height: 100px;
+    height: 6vh;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -19,22 +19,22 @@
 
 .brand-container {
     margin-left: 20px;
-} 
-
+}
 
 .button-container {
     background-color: white;
-    padding-left: 5px;
-    padding-right: 5px;
+    padding: 4px 14px;
     border-radius: 5px; /* Adjust padding to prevent overflow */
     margin-right: 20px;
+    min-width: 60px;
     border: none;
+    align-content: center;
     text-decoration: none;
 }
 
-.button-container:hover{
-    background-color: rgb(51 65 85);
-    color: white; 
+.button-container:hover {
+    background-color: rgb(51, 65, 85);
+    color: white;
 }
 
 .button-container:hover a {
@@ -44,16 +44,20 @@
 p {
     margin: 0; /* Remove default margin */
     font-size: 25px;
-}
-
-a {
-    /*color: white; /* Ensure link text is visible */
     text-decoration: none;
 }
 
-Link{
-    text-decoration: none
+a {
+    text-decoration: none;
+    color: black;
 }
 
+/* Link {
+    text-decoration: none;
+} */
 
-  
+.navButtons {
+    display: flex;
+    flex-direction: row;
+    margin-left: 30px;
+}

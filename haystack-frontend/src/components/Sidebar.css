@@ -7,8 +7,10 @@
     transition: width 0.5s;
     z-index: 1000;
     background-color: #0f172a;
-    height: 87.7vh;
+    height: auto;
+    min-height: 85vh;
     color: white;
+    margin-top: 10px;
 }
 
 .sidebar.expanded {

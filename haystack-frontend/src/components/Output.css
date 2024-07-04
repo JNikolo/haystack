@@ -59,8 +59,10 @@
 
 .nlpOutput {
     background-color: white;
-    color:#007bff;
+    color:black;
     height: 80%;
     overflow-y: auto;
-    margin: 15px;
+    padding: 10px 20px;
+    margin-top: 30px;
+    border-radius: 5px;
 }
