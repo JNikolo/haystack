@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { Bar } from 'react-chartjs-2';
 import 'chart.js/auto';
 import './ConceptFreq.css';
+import { getPdfById } from '../utils/indexedDB';
+
 
 const labelDefinitions = {
     ORG: "Companies, agencies, institutions, etc.",

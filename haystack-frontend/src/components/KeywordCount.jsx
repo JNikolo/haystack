@@ -27,7 +27,7 @@ function KeywordCounting({ selectedPdfs }) {
             formData.append('files', pdf.file);
         }
 
-
+        console.log('Form Data: ', formData);
 
         try {
             const response = await fetch(`http://127.0.0.1:8000/searchkeyword/?keyword=${keyword}`, {
@@ -46,6 +46,8 @@ function KeywordCounting({ selectedPdfs }) {
             } else {
                 throw new Error(data.message || 'Failed to fetch keyword count');
             }
+            console.log('Response: ', response);
+
         } catch (error) {
             setError(error.message || 'Failed to fetch keyword count');
         } finally {
@@ -78,7 +80,6 @@ function KeywordCounting({ selectedPdfs }) {
             document.body.removeChild(a);
         }
     };
-
     return (
         <div className="keyword-counting">
             <h2>Get keyword counting for your PDFs!</h2>
@@ -92,7 +93,7 @@ function KeywordCounting({ selectedPdfs }) {
                     disabled={isLoading || !(selectedPdfs.length > 0)} // Disable textarea when loading or no PDFs selected
                 />
             </form>
-            <button type="submit" className="keyword-submit" disabled={isLoading || !(selectedPdfs.length > 0)}>
+            <button type="submit" className="keyword-submit" disabled={isLoading}>
                     {isLoading ? 'Counting...' : 'Submit'}
             </button>
             {error && <p className="error-message">{error}</p>}

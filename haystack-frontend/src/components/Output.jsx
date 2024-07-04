@@ -5,10 +5,12 @@ import KeywordCounting from './KeywordCount';
 import ConceptFreq from './ConceptFreq';
 import './Output.css';
 import TopicModeling from './TopicModeling';
+import { getPdfById } from '../utils/indexedDB';
+
 
 function Output({ activeButton, selectedPdfs }) {
     const [question, setQuestion] = useState('');
-    const [response, setResponse] = useState(null);
+    const [response, setResponse] = useState('');
     const [activeButtonNlp, setActiveButtonNlp] = useState('left');
     const [buttonClicked, setButtonClicked] = useState(true);
 
@@ -18,7 +20,7 @@ function Output({ activeButton, selectedPdfs }) {
 
     const handleQuestionSubmit = async (e) => {
         e.preventDefault();
-
+        const newpdfList = [];
         // Get the current user
         const user = auth.currentUser;
         if (!user) {
@@ -26,8 +28,17 @@ function Output({ activeButton, selectedPdfs }) {
             return;
         }
 
+        for (let pdfID of selectedPdfs) {
+            const pdf = await getPdfById(pdfID);
+            newpdfList.push(pdf);
+        }
+
         const user_id = user.uid; // Get the current user's UUID
-        const doc_ids = pdfList.map(pdf => pdf.file.name); // Assuming pdfList contains objects with an 'id' field
+        const doc_ids = newpdfList.map(pdf => pdf.name); // Assuming pdfList contains objects with an 'id' field
+
+        //console.log('Query: ', question);
+        //console.log('User ID: ', user_id);
+        //console.log('Doc IDS: ', doc_ids);
 
         const requestBody = {
             query: question,
@@ -35,13 +46,15 @@ function Output({ activeButton, selectedPdfs }) {
             doc_ids: doc_ids
         };
 
+        console.log('Request Body: ', requestBody);
+
         try {
             const response = await fetch('http://localhost:8000/qa_rag/', { // Replace with your backend URL
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(requestBody),
+                body: JSON.stringify(requestBody)
             });
 
             if (response.ok) {

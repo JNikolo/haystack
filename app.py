@@ -8,8 +8,8 @@ from icecream import ic
 import pprint
 from pypdf import PdfReader
 import os
-
 from dotenv import load_dotenv
+from pydantic import BaseModel
 
 #Embeddings temp
 import weaviate
@@ -24,7 +24,6 @@ from langchain_google_genai import (
     HarmCategory,
 
 )
-#from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_huggingface.embeddings import HuggingFaceEmbeddings
 from langchain_community.llms import HuggingFacePipeline
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -58,9 +57,8 @@ from gensim.parsing.preprocessing import preprocess_string
 from gensim.corpora import Dictionary
 from gensim.models import LdaModel
 
-#pinecone
+#DBs firebase for frontend account auth and pinecone for backend pdf embeddings
 from langchain_pinecone import PineconeVectorStore
-
 import firebase_admin
 from firebase_admin.auth import verify_id_token
 
@@ -70,19 +68,11 @@ load_dotenv()
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 genai.configure(api_key=GOOGLE_API_KEY)
 
-DB_NAME = 'pdfs'
-COLLECTION_NAME = 'pdfs_collection'
-#NAMESPACE = 'pdfs.pdfs_collection'
-
-vector_search_index = "vector_index"
-
-
 PINECONE_API_KEY = os.getenv('PINECONE_API_KEY')
 
 # Hugging Face model for embeddings.
 model_name = "sentence-transformers/all-MiniLM-L6-v2"
-model_kwargs = {'device': 'cpu'}
-# model_kwargs = {'device': 'cuda'}
+model_kwargs = {'device': 'cpu'} #cuda if gpu is needed
 embeddings = HuggingFaceEmbeddings(
     model_name=model_name,
     model_kwargs=model_kwargs,
@@ -102,7 +92,6 @@ origins = [
     "http://localhost:5173",
     "localhost:5173"
 ]
-
 
 app.add_middleware(
     CORSMiddleware,
@@ -149,22 +138,7 @@ def get_firebase_user_from_token(token):
 
 #################################################### SUBMITING PDFS ####################################################
 def submit_docs_for_rag(submitted_pdf:UploadFile):
-    #directory_path = pdf_directory
-    #pdf = submitted_pdf
-
     reader = PdfReader(submitted_pdf.file)
-    # Load the pdf.
-    #loaders = []
-    #loader = PyMuPDFLoader(directory_path + "/" + pdf)
-    #loaders.append(loader)
-
-    #print("len(loaders) =", len(loaders))
-
-    #data = loader.load()
-
-    #print("len(data) =", len(data), "\n")
-
-    # Initialize the text splitter
     raw_text = ''
     for page in reader.pages:
         text = page.extract_text()
@@ -173,12 +147,6 @@ def submit_docs_for_rag(submitted_pdf:UploadFile):
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
 
     docs = text_splitter.split_text(raw_text)#, metadatas = [{'doc_id' : 1}])
-    #doc_content = [doc.page_content for doc in docs]
-    #print(doc_content)
-
-    # Print the document.
- #   print("\n\n\n")
- #   pprint.pprint(docs)
 
     return docs
 ########################################################################################################################
@@ -202,19 +170,6 @@ async def get_list_raw_text(pdf_files: List[UploadFile]) -> List[str]:
     return all_pdf_text
 
 async def search_keyword_in_pdfs(pdf_files: List[UploadFile], keyword: str) -> Tuple[List[Dict[str, Any]], int]:
-    """
-    Searches for a keyword in a list of PDF files and returns the keyword counts and total count.
-
-    Args:
-        pdf_files (List[UploadFile]): A list of UploadFile objects representing the PDF files to search.
-        keyword (str): The keyword to search for.
-
-    Returns:
-        Tuple[List[Dict[str, Any]], int]: A tuple containing the keyword counts per file and the total count.
-            - keyword_counts (List[Dict[str, Any]]): A list of dictionaries containing the keyword count, metadata, and page number for each file.
-            - total (int): The total count of the keyword across all files.
-    """
-    
     keyword_counts = [] # List to store keyword counts per file
     total = 0  
 
@@ -375,17 +330,7 @@ async def topic_modeling_from_pdfs(pdf_files: List[UploadFile]):
 #################################################### RAG QA 1 TO 1 #####################################################
 def add_docs(chosen_pdf:UploadFile, namespace:str, doc_id:int):
     pdf = submit_docs_for_rag(chosen_pdf)
-
-    # Create Weaviate vector store (database).
-#    client = weaviate.Client(
-#    embedded_options = EmbeddedOptions()
-#    )
     print(f"Creating vector store for {len(pdf)} chunks")
-    
-
-    # Checking if pdf already exists in the database???????
-
-
     VECTOR_STORE.add_texts(
         texts = pdf,
         namespace = namespace,
@@ -394,9 +339,6 @@ def add_docs(chosen_pdf:UploadFile, namespace:str, doc_id:int):
 
 
 def Haystack_qa_1(query: str, namespace:str, doc_id:int):
-
-    #add_docs(chosen_pdf, pdf_directory)
-    
     RETRIEVER_STORE = PineconeVectorStore.from_existing_index(
         embedding = embeddings,
         index_name = INDEX_NAME,
@@ -416,7 +358,6 @@ def Haystack_qa_1(query: str, namespace:str, doc_id:int):
     if not retriever:
         print(f"No relevant documents found for PDF")
     
-
     # Define a prompt template.
     # LangChain passes these documents to the {context} input variable and the user's query to the {question} variable.
     template = """
@@ -537,82 +478,16 @@ def Haystack_qa_many(pdf_list, query: str):
     return replies
 ########################################################################################################################
 
-# 1 to 1 and 1 to many
-# 1 query for 1 doc and 1 query for multiple docs separately
-# Grab all the data from the NLP and put them into a csv file
-# Topic modeling important
-# Allow users to choose chunk sizes maybe?
-
-#defining the routes
-
-#route to the home page
-@app.get("/",response_class=HTMLResponse)
-def index():
-    """
-    This function handles the index route of the application.
-    
-    Returns:
-        dict: A dictionary containing a welcome message.
-    """
-    return """
-    <html>
-    <head>
-        <title>Upload PDFs</title>
-    </head>
-    <body>
-        <h1>Upload PDFs</h1>
-        <form action="/conceptsfrequencies/" method="post" enctype="multipart/form-data">
-            <input type="file" name="files" accept="application/pdf" multiple>
-            <button type="submit">Upload</button>
-        </form>
-    </body>
-    </html>
-    """
-
-#route to the /login page
-@app.post("/login")
-def login(username: str, password: str):
-    """
-    Logs in the user with the provided username and password.
-
-    Args:
-        username (str): The username of the user.
-        password (str): The password of the user.
-
-    Returns:
-        dict: A dictionary containing the username and password.
-
-    """
-    return {"username": username, "password": password}
-
+########################################################################################################################
+######################################################## ROUTES ########################################################
+########################################################################################################################
 #route to the /querydocuments page
 @app.get("/querydocuments/{query}/topk/{top_k}")
 def read_item(query: str, top_k: int):
-    """
-    Reads an item with the given query and top_k parameters.
-
-    Args:
-        query (str): The query string.
-        top_k (int): The number of top items to retrieve.
-
-    Returns:
-        dict: A dictionary containing the query and top_k parameters.
-    """
     return {"q": query, "top_k": top_k}
 
 @app.post("/uploadfiles/")
 async def create_upload_files(files: list[UploadFile]):
-    """
-    Extracts text from PDF files and saves them as text files.
-
-    Args:
-        files (list[UploadFile]): A list of UploadFile objects representing the PDF files to process.
-
-    Returns:
-        dict: A dictionary containing the status and message of the extraction process.
-            - If the extraction is successful, the status will be "success" and the message will be "Text extracted successfully."
-            - If an error occurs during the extraction, the status will be "fail" and the message will contain the error details.
-    """
     try:
         for file in files:
             reader = PdfReader(file.file)
@@ -629,27 +504,8 @@ async def create_upload_files(files: list[UploadFile]):
     except Exception as e:
         return {"status": "fail", "message": f"Failed to extract text. Error ocurred: {e}"}
     
-########################################################################################################################
 @app.post("/searchkeyword/")
 async def search_keyword(files: List[UploadFile], keyword: str) -> Dict[str, Any]:
-    """
-    Searches for a keyword in a list of uploaded files.
-
-    Args:
-        files (List[UploadFile]): A list of uploaded files to search in.
-        keyword (str): The keyword to search for.
-
-    Returns:
-        Dict[str, Any]: A dictionary containing the search results.
-            - "status": The status of the search ("success" or "fail").
-            - "keyword": The keyword that was searched for.
-            - "total": The total number of occurrences of the keyword in the files.
-            - "results": A dictionary containing the keyword counts for each file.
-
-    Raises:
-        Exception: If an error occurs during the search.
-
-    """
     try:
         keyword_counts, total = await search_keyword_in_pdfs(files, keyword)
         return {"status":"success", "keyword": keyword, "total": total, "results": keyword_counts}
@@ -677,19 +533,8 @@ async def topic_modeling(files: List[UploadFile]):
     except Exception as e:
         return {"status": "fail", "message": f"Failed to perform topic modeling. Error ocurred: {e}"}
 
-########################################################################################################################
-from pydantic import BaseModel
 @app.delete("/delete_embeddings/")
-def delete_embeddings(user_id: str):
-    """
-    Deletes the embeddings for the specified user.
-
-    Args:
-        user_id (str): The user ID for which to delete the embeddings.
-
-    Returns:
-        dict: A dictionary containing the status of the deletion process.
-    """
+def delete_embeddings(user_id: str): 
     try:
         VECTOR_STORE.delete(delete_all=True, namespace=user_id)
         return {"status": "success", "message": "Embeddings deleted successfully."}
@@ -712,28 +557,18 @@ async def add_embeddings(
     except Exception as e:
         return {"status": "fail", "message": f"Failed to add embeddings. Error occurred: {e}"}
 
-class QueryModel(BaseModel):
+class QARAGRequest(BaseModel):
     query: str
     user_id: str
     doc_ids: List[str]
 
 @app.post("/qa_rag/")
-def qa_rag(query_model: QueryModel):
-    query = query_model.query
-    user_id = query_model.user_id
-    doc_ids = query_model.doc_ids
+def qa_rag(request: QARAGRequest):
     replies = []
-    for id in doc_ids:
-        reply = Haystack_qa_1(query, user_id, id)
+    for id in request.doc_ids:
+        reply = Haystack_qa_1(request.query, request.user_id, id)
         replies.append(reply)
     return {"status":"success", 'result' : replies}
 
-
-
-#VECTOR_STORE.delete(delete_all=True, namespace="user_1")
-#add_docs("OWASP Application Security Verification Standard 4.0.3-en.pdf", "pdfs", 'user_1', 1)
-#add_docs("file_87.pdf", "pdfs", 'user_1', 2)
-#Haystack_qa_1("a", "b", "What is authorization?", 'user_1', 1)
-
-#submit_docs_for_rag("OWASP Application Security Verification Standard 4.0.3-en.pdf", "pdfs")
-#MONGODB_COLLECTION.delete_many({})
+#VECTOR_STORE.delete(delete_all=True, namespace='user_1')
+#VECTOR_STORE.delete(delete_all=True, namespace='user_2')

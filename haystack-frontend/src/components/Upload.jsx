@@ -71,18 +71,12 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
 
         const user_id = user.uid;
         const formData = new FormData();
+        const newfiles = [];
 
         const files = Array.from(event.target.files);
         if (!await checkTotalSize(files)) {
             return;
         }
-    
-        files.forEach((file) => {
-            formData.append('pdf_list', file);
-            formData.append('doc_ids', file.name); // Assuming doc_id is just the index for this example
-        });
-        formData.append('user_id', user_id);
-        
 
         const allPdfs = await getAllPdfs();
         for (let file of files) {
@@ -94,44 +88,46 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
             }
             else{
                 hashList.push(hash);
+                newfiles.push(file);
                 await addPdfToDatabase(file);
             }
         }
 
-        
+        newfiles.forEach((file) => {
+            formData.append('pdf_list', file);
+            formData.append('doc_ids', file.name); // Assuming doc_id is just the index for this example
+        });
+        formData.append('user_id', user_id);
+
         // Debugging: Log FormData entries
         for (let [key, value] of formData.entries()) {
             console.log(`${key}: ${value}`);
         }
 
-        // try {
-        //     const response = await fetch('http://localhost:8000/add_embeddings/', { // Replace with your backend URL
-        //         method: 'POST',
-        //         body: formData,
-        //     });
+        try {
+            const response = await fetch('http://localhost:8000/add_embeddings/', { // Replace with your backend URL
+                method: 'POST',
+                body: formData,
+            });
 
-        //     if (response.ok) {
-        //         const data = await response.json();
-        //         console.log('Success:', data.message);
-        //         // Perform any additional actions needed upon success
-        //     } else {
-        //         const errorData = await response.json();
-        //         console.error('Error:', errorData.message);
-        //         // Handle the error accordingly
-        //     }
-        // } catch (error) {
-        //     console.error('Error:', error.message);
-        //     // Handle the error accordingly
-        // }
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Success:', data.message);
+                // Perform any additional actions needed upon success
+            } else {
+                const errorData = await response.json();
+                console.error('Error:', errorData.message);
+                // Handle the error accordingly
+            }
+        } catch (error) {
+            console.error('Error:', error.message);
+            // Handle the error accordingly
+        }
 
-        // // Check file size and add to database
-        // if (!await checkTotalSize(files)) {
-        //     return;
-        // }
-
-        // for (let file of files) {
-        //     await addPdfToDatabase(file);
-        // }
+        // Check file size and add to database
+        if (!await checkTotalSize(files)) {
+            return;
+        }
         onFileChange();
     };
 

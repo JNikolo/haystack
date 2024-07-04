@@ -87,6 +87,7 @@ function GetInsights() {
 
     const handleFileChange = async () => {
         await loadPdfs(); // Reload PDFs after file change
+        
     };
 
     const handleCheckboxChange = (event, id) => {
