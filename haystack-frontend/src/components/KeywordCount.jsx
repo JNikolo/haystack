@@ -81,10 +81,10 @@ function KeywordCounting({ pdfList }) {
                     rows={1}
                     disabled={isLoading || !(pdfList.some(pdf => pdf.selected))} // Disable textarea when loading or no PDFs selected
                 />
-                <button type="submit" className="keyword-submit" disabled={isLoading || !(pdfList.some(pdf => pdf.selected))}>
-                    {isLoading ? 'Counting...' : 'Submit'}
-                </button>
             </form>
+            <button type="submit" className="keyword-submit" disabled={isLoading || !(pdfList.some(pdf => pdf.selected))}>
+                    {isLoading ? 'Counting...' : 'Submit'}
+            </button>
             {error && <p className="error-message">{error}</p>}
             {apiResponse && (
                 <div className="keyword-output">

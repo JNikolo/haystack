@@ -1,0 +1,21 @@
+.keyword-counting{
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+}
+
+.keyword-submit{
+    padding: 5px 10px;
+    max-width: 149px;
+    margin-top: 10px;
+}
+
+/* .keyword-form{
+    min-height: 10vh;
+} */
+
+.keyword-input{
+    margin-top:20px;
+    min-height: 10vh;
+    min-width: 80vw;
+}

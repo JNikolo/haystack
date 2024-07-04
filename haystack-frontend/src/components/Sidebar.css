@@ -1,34 +1,46 @@
 .sidebar {
     position: absolute;
-    top: 70px; /* Adjust based on your header height */
+    top: auto; /* Adjust based on your header height */
     left: 0;
     width: 50px; /* default width for collapsed state */
-    padding: 20px 0;
+    padding: 30px 20px;
     transition: width 0.5s;
     z-index: 1000;
-    background-color: rgba(255, 255, 255, 0.363);
-    height: 74vh;
+    background-color: #0f172a;
+    height: auto;
+    min-height: 85vh;
+    color: white;
+    margin-top: 10px;
 }
 
 .sidebar.expanded {
-    width: 300px; /* expanded width */
+    width: auto;
+    max-width: 400px; /* expanded width */
 }
 
 .sidebar.collapsed {
-    width: 52.5px;
+    width: 50px;
 }
 
 .toggle-btn {
     position: absolute;
     top: 20px; /* Adjust based on your design */
     right: -50px; /* Position the button outside the sidebar */
-    background: blue;
-    color: white;
+    background: white;
+    color: black;
     border: none;
     cursor: pointer;
-    padding: 10px;
+    padding: 5px 20px;
     transition: right 0.5s;
     z-index: 1100; /* Ensure it's above the sidebar content */
+    font-weight: bold;
+    font-size: 25px;
+    border-radius: 5px;
+}
+
+.toggle-btn:hover{
+    background-color: rgb(51 65 85);
+    color: white;
 }
 
 .sidebar.expanded .toggle-btn {

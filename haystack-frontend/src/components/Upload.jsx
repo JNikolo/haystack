@@ -133,7 +133,7 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
             >
-                <h3>Drag & Drop files here</h3>
+                <p>Drag & Drop files here</p>
                 <p>Limit 200MB in total</p>
                 <p>Only .pdf accepted</p>
             </div>

@@ -2,23 +2,25 @@
     display: flex;
     flex-direction: row;
     justify-content: space-around;
-    
 }
 
 .nlpButton {
-    margin: 15px;
-    width: 200px;
+    padding: 10px 20px;
+    width: auto;
     border:none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 25px;
 }
 
 .nlpButton:hover {
-    background-color: #ff006a;
+    background-color: rgb(51 65 85);
     color: white;
     outline: none;
 } 
 
 .nlpButton.active {
-    background-color: #ff006a;
+    background-color: rgb(51 65 85);
     color: white;
     outline: none;
 }

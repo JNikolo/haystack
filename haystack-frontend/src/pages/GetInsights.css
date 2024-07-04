@@ -1,14 +1,15 @@
 body {
     color: white;
-    background-color: #333;
+    background-color: black;
 }
 
 .insights-container {
     display: flex;
     justify-content: center; /* Center the main content */
     align-items: flex-start;
-    height: 80vh;
-    width: 100vw;
+    min-height: 85vh;
+    height: auto;
+    width: 100%;
     /* height: 60vh;
     padding: 20px;
     width: 90vw; */
@@ -16,10 +17,8 @@ body {
 
 .box {
     background-color: black;
-    border: 1px solid #ccc;
+    /* border: 1px solid white; */
     border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    padding: 20px;
 }
 
 /* .upload-box {
@@ -28,16 +27,17 @@ body {
 } */
 
 .main-content {
-    flex: 1;
+    display: flex;
+    flex-direction: column;
     padding: 20px;
-    transition: margin-left 0.3s;
-    max-width: 1000px; /* Maximum width for the main content */
-    height: 50vh;
+    /* transition: margin-left 0.3s; */
+    width: 85vw; /* Maximum width for the main content */
+    height: 83vh;
 }
 
-.main-content.expanded {
+/* .main-content.expanded {
     margin-left: 250px;
-}
+} */
 /* .right-side {
     display: flex;
     flex-direction: column;
@@ -47,10 +47,12 @@ body {
 
 .options-box {
     height: 10%;
+    margin-top: 20px;
+    margin-bottom: 20px;
 }
 
 .output-box {
-    height: 100%; 
+    height: 100%;
     display: flex;
     overflow: hidden; 
 }
