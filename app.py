@@ -1,4 +1,7 @@
-from fastapi import FastAPI, UploadFile, Form, File
+import datetime
+import time
+from fastapi import FastAPI, HTTPException, UploadFile, Form, File, Cookie
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Any, Dict, Tuple
 
@@ -60,7 +63,7 @@ from gensim.models import LdaModel
 #DBs firebase for frontend account auth and pinecone for backend pdf embeddings
 from langchain_pinecone import PineconeVectorStore
 import firebase_admin
-from firebase_admin.auth import verify_id_token
+from firebase_admin.auth import verify_id_token, create_session_cookie
 
 load_dotenv()
 
@@ -572,3 +575,53 @@ def qa_rag(request: QARAGRequest):
 
 #VECTOR_STORE.delete(delete_all=True, namespace='user_1')
 #VECTOR_STORE.delete(delete_all=True, namespace='user_2')
+
+
+########################################################################################################################
+#Session cookies
+
+class sessionModel(BaseModel):
+    idToken: str
+    csrfToken: str
+
+@app.post("/sessionLogin")
+def session_login(session_model: sessionModel, csrf_token: str = Cookie(None)):
+    id_token = session_model.idToken
+    csrf = session_model.csrfToken
+     # Verify CSRF token
+    if not csrf_token or csrf != csrf_token:
+        raise HTTPException(status_code=401, detail="UNAUTHORIZED REQUEST!")
+
+    expires_in = datetime.timedelta(days=5)
+
+    # To ensure that cookies are set only on recently signed in users, check auth_time in
+    # ID token before creating a cookie.
+    try:
+        decoded_claims = verify_id_token(id_token)
+        # Only process if the user signed in within the last 5 minutes.
+        if (time.time() - decoded_claims['auth_time']) < (5 * 60):
+            expires_in = datetime.timedelta(days=5)
+            expires = datetime.datetime.now() + expires_in
+            session_cookie = create_session_cookie(id_token, expires_in=expires_in)
+            response = JSONResponse({'status': 'success'})
+            response.set_cookie(
+                key='session', value=session_cookie, expires=expires, httponly=True, secure=True)
+            return response
+        # User did not sign in recently. To guard against ID token theft, require
+        # re-authentication.
+        else:
+            # User did not sign in recently, require re-authentication
+            raise HTTPException(status_code=401, detail="Recent sign in required")
+    except firebase_admin.auth.InvalidIdTokenError:
+        raise HTTPException(status_code=401, detail="UNAUTHORIZED REQUEST!")
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+#VECTOR_STORE.delete(delete_all=True, namespace="user_1")
+#add_docs("OWASP Application Security Verification Standard 4.0.3-en.pdf", "pdfs", 'user_1', 1)
+#add_docs("file_87.pdf", "pdfs", 'user_1', 2)
+#Haystack_qa_1("a", "b", "What is authorization?", 'user_1', 1)
+
+#submit_docs_for_rag("OWASP Application Security Verification Standard 4.0.3-en.pdf", "pdfs")
+#MONGODB_COLLECTION.delete_many({})

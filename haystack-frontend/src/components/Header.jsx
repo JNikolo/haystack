@@ -38,7 +38,9 @@ function Header() {
                 {
                     userLoggedIn
                     ? 
-                    <button className='button-container' onClick={handleLogout}>Sign Out</button>
+                    <p>
+                        <button className='sign-out-button' onClick={handleLogout}>Sign Out</button>
+                    </p>
                     :
                     <p>
                         <Link className='button-container' to="/signin">Sign In</Link>

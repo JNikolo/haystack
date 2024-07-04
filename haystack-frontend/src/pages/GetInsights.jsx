@@ -109,6 +109,8 @@ function GetInsights() {
         await deletePdfById(id);
         const updatedPdfs = pdfList.filter(pdf => pdf.id !== id);
         setPdfList(updatedPdfs);
+        
+        setSelectedPdfs(selectedPdfs.filter(pdfId => pdfId !== id));
     };
     
     

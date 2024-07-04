@@ -17,7 +17,9 @@ function SignIn() {
     const handleSignIn = (e) => {
         window.localStorage.setItem("isLogged", true);
         e.preventDefault();
-        signInWrapper(email, password);
+        signInWrapper(email, password).then(() => {
+            navigate("/getinsights"); // Redirect to GetInsights page
+        });
         // signInWithEmailAndPassword(auth, email, password)
         //     .then((userCredential) => {
         //         // Signed in

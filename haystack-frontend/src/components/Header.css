@@ -34,6 +34,26 @@
     text-decoration: none;
     justify-content: center;
     z-index: auto;
+    font-size: 18px;
+}
+
+
+.sign-out-button {
+    background-color: white;
+    padding: 5px 8px;
+    border-radius: 5px; /* Adjust padding to prevent overflow */
+    margin-right: 20px;
+    width: auto;
+    border: none;
+    text-decoration: none;
+    justify-content: center;
+    z-index: auto;
+    font-size: 18px;
+}
+
+.sign-out-button:hover {
+    background-color: rgb(51, 65, 85);
+    color: white;
 }
 
 .button-container:hover {
