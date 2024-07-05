@@ -513,8 +513,8 @@ async def search_keyword(files: List[UploadFile], keyword: str) -> Dict[str, Any
         keyword_counts, total = await search_keyword_in_pdfs(files, keyword)
         return {"status":"success", "keyword": keyword, "total": total, "results": keyword_counts}
     except Exception as e:
-        return {"status":"fail", "keyword": keyword, "message": f"Failed to search for keyword. Error ocurred: {e}"}
-
+        raise HTTPException(status_code=401, detail="UNAUTHORIZED REQUEST!")
+    
 @app.post("/conceptsfrequencies/")
 async def concept_frequencies(files: List[UploadFile]):
 
@@ -531,8 +531,9 @@ async def topic_modeling(files: List[UploadFile]):
         df_count, df_importance = await topic_modeling_from_pdfs(files)
         count = df_count.to_dict(orient='records')
         importance = df_importance.to_dict(orient='records')
+        result = {"count": count, "importance": importance}
         
-        return {"status": "success", "message": "Topic modeling performed successfully.", "count": count, "importance": importance}
+        return {"status": "success", "message": "Topic modeling performed successfully.", "result": result}
     except Exception as e:
         return {"status": "fail", "message": f"Failed to perform topic modeling. Error ocurred: {e}"}
 

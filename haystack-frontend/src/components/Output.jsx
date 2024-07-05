@@ -155,7 +155,9 @@ function Output({ activeButton, selectedPdfs }) {
                             />
                         )}
                         {activeButtonNlp === 'right' && (
-                            <TopicModeling />
+                            <TopicModeling 
+                                selectedPdfs={selectedPdfs}
+                            />
                         )}
                     </div>
                 </>
