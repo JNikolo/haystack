@@ -1,9 +1,11 @@
 import datetime
 import time
-from fastapi import FastAPI, HTTPException, UploadFile, Form, File, Cookie
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, HTTPException, UploadFile, Form, File, Cookie, Depends
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Any, Dict, Tuple
+
+
 
 #useful libraries
 from fastapi.responses import HTMLResponse
@@ -13,6 +15,7 @@ from pypdf import PdfReader
 import os
 from dotenv import load_dotenv
 from pydantic import BaseModel
+
 
 #Embeddings temp
 import weaviate
@@ -584,8 +587,15 @@ class sessionModel(BaseModel):
     idToken: str
     csrfToken: str
 
+#create seesion cookie
+def create_session_cookie(id_token, expires_in):
+    # Implement your logic to create a session cookie based on the ID token
+    # Example implementation:
+    session_cookie = firebase_admin.auth.create_session_cookie(id_token, expires_in=expires_in)
+    return session_cookie
+
 @app.post("/sessionLogin")
-def session_login(session_model: sessionModel, csrf_token: str = Cookie(None)):
+def session_login(session_model: sessionModel, csrf_token: str = Depends()):
     id_token = session_model.idToken
     csrf = session_model.csrfToken
      # Verify CSRF token
@@ -612,11 +622,35 @@ def session_login(session_model: sessionModel, csrf_token: str = Cookie(None)):
         else:
             # User did not sign in recently, require re-authentication
             raise HTTPException(status_code=401, detail="Recent sign in required")
-    except firebase_admin.auth.InvalidIdTokenError:
+    except auth.InvalidIdTokenError:
         raise HTTPException(status_code=401, detail="UNAUTHORIZED REQUEST!")
 
     except Exception as e:
         raise HTTPException(status_code=500, detail="Internal Server Error")
+
+########################################################################################################################
+#Verify Session cookies
+
+@app.get("/profile")
+def access_restricted_content(session: str = Cookie(None)):
+    if not session:
+        return RedirectResponse(url='/login')
+
+    try:
+        # Verify the session cookie and check if it's revoked
+        decoded_claims = firebase_admin.auth.verify_session_cookie(session, check_revoked=True)
+        return serve_content_for_user(decoded_claims)
+    
+    except auth.InvalidSessionCookieError:
+        return RedirectResponse(url='/login')
+
+########################################################################################################################
+#Session Logout
+@app.route('/sessionLogout', methods=['POST'])
+def session_logout():
+    response = RedirectResponse(url='/login')
+    response.set_cookie('session', '', max_age=0)
+    return response
 
 #VECTOR_STORE.delete(delete_all=True, namespace="user_1")
 #add_docs("OWASP Application Security Verification Standard 4.0.3-en.pdf", "pdfs", 'user_1', 1)

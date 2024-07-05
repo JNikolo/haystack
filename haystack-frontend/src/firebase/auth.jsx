@@ -2,39 +2,66 @@ import { auth } from "./config"; // Import Firebase auth instance
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword} from "firebase/auth";
 
 export const signInWrapper = async (email, password) => {
-    return signInWithEmailAndPassword(auth, email, password)//.then(user => {
-        // // Get the user's ID token as it is needed to exchange for a session cookie.
-        // return user.getIdToken().then(idToken => {
-        //     // Session login endpoint is queried and the session cookie is set.
-        //     // CSRF protection should be taken into account.
-        //     // ...
-        //     const csrfToken = getCookie('csrfToken')
-        //     return postIdTokenToSessionLogin('http://127.0.0.1:8000/sessionLogin', idToken, csrfToken);
-        // });
-        // }).then(() => {
-        // // A page redirect would suffice as the persistence is set to NONE.
-        // return auth.signOut();
-        // })
+    try{
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user= userCredential.user;
+
+        const idToken= await user.getIdToken();
+
+        const csrfToken = getCookie('csrfToken');
+
+        await postIdTokenToSessionLogin('http://127.0.0.1:8000/sessionLogin', idToken, csrfToken);
+
+        await auth.signOut();
+    }catch (error) {
+        console.error('Error signing in:', error);
+        throw error; // Handle error appropriately in your application
+    }
 }
 
 export const createUserWrapper = async (email, password) => {
-    return createUserWithEmailAndPassword(auth, email, password);
+    try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        return userCredential.user;
+    } catch (error) {
+        console.error('Error creating user:', error);
+        throw error; // Handle error appropriately in your application
+    }
 }
 
 export const signOutWrapper = async () => {
-    return auth.signOut();
+    try {
+        await auth.signOut();
+    } catch (error) {
+        console.error('Error signing out:', error);
+        throw error; // Handle error appropriately in your application
+    }
 }
 
 
 async function postIdTokenToSessionLogin(url, idToken, csrfToken) {
     // POST to session login endpoint.
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ idToken: idToken, csrfToken: csrfToken})
-    });
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ idToken: idToken, csrfToken: csrfToken })
+        });
 
-    return response.json();
+        if (!response.ok) {
+            throw new Error('Failed to post ID token to session login endpoint');
+        }
+
+        return response.json();
+    } catch (error) {
+        console.error('Error posting ID token to session login:', error);
+        throw error; // Handle error appropriately in your application
+    }
+}
+
+function getCookie(name) {
+    const cookieValue = document.cookie.match('(^|[^;]+)\\s*' + name + '\\s*=\\s*([^;]+)');
+    return cookieValue ? cookieValue.pop() : '';
 }
