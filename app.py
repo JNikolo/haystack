@@ -594,43 +594,52 @@ def create_session_cookie(id_token, expires_in):
     session_cookie = firebase_admin.auth.create_session_cookie(id_token, expires_in=expires_in)
     return session_cookie
 
-@app.post("/sessionLogin")
-def session_login(session_model: sessionModel, csrf_token: str = Depends()):
+@app.post("/session_login/")
+async def session_login(session_model: sessionModel):#, csrf_token: str = Depends()):
+    print("ello there")
     id_token = session_model.idToken
-    csrf = session_model.csrfToken
+    #csrf = session_model.csrfToken
      # Verify CSRF token
-    if not csrf_token or csrf != csrf_token:
-        raise HTTPException(status_code=401, detail="UNAUTHORIZED REQUEST!")
+    #if not csrf_token or csrf != csrf_token:
+    #    raise HTTPException(status_code=401, detail="UNAUTHORIZED REQUEST!")
 
     expires_in = datetime.timedelta(days=5)
 
     # To ensure that cookies are set only on recently signed in users, check auth_time in
     # ID token before creating a cookie.
+    print("id token obtained: ", id_token)
     try:
+        print("entered try")
         decoded_claims = verify_id_token(id_token)
+        print("decoded id")
         # Only process if the user signed in within the last 5 minutes.
         if (time.time() - decoded_claims['auth_time']) < (5 * 60):
-            expires_in = datetime.timedelta(days=5)
+            #expires_in = datetime.timedelta(days=5)
             expires = datetime.datetime.now() + expires_in
             session_cookie = create_session_cookie(id_token, expires_in=expires_in)
             response = JSONResponse({'status': 'success'})
             response.set_cookie(
                 key='session', value=session_cookie, expires=expires, httponly=True, secure=True)
+            print("exiting try")
             return response
         # User did not sign in recently. To guard against ID token theft, require
         # re-authentication.
         else:
             # User did not sign in recently, require re-authentication
+            print("in else")
             raise HTTPException(status_code=401, detail="Recent sign in required")
-    except auth.InvalidIdTokenError:
+    except firebase_admin.auth.InvalidIdTokenError:
+        print("unauthorized")
         raise HTTPException(status_code=401, detail="UNAUTHORIZED REQUEST!")
 
-    except Exception as e:
+    except Exception as e: 
+        print("problem")
+        print(e)
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 ########################################################################################################################
 #Verify Session cookies
-
+'''
 @app.get("/profile")
 def access_restricted_content(session: str = Cookie(None)):
     if not session:
@@ -641,12 +650,12 @@ def access_restricted_content(session: str = Cookie(None)):
         decoded_claims = firebase_admin.auth.verify_session_cookie(session, check_revoked=True)
         return serve_content_for_user(decoded_claims)
     
-    except auth.InvalidSessionCookieError:
+    except firebase_admin.auth.InvalidSessionCookieError:
         return RedirectResponse(url='/login')
-
+'''
 ########################################################################################################################
 #Session Logout
-@app.route('/sessionLogout', methods=['POST'])
+@app.post('/session_logout')
 def session_logout():
     response = RedirectResponse(url='/login')
     response.set_cookie('session', '', max_age=0)

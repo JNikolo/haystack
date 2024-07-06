@@ -10,7 +10,7 @@ export const signInWrapper = async (email, password) => {
 
         const csrfToken = getCookie('csrfToken');
 
-        await postIdTokenToSessionLogin('http://127.0.0.1:8000/sessionLogin', idToken, csrfToken);
+        await postIdTokenToSessionLogin('http://127.0.0.1:8000/session_login', idToken, csrfToken);
 
         await auth.signOut();
     }catch (error) {
@@ -22,7 +22,7 @@ export const signInWrapper = async (email, password) => {
 export const createUserWrapper = async (email, password) => {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        return userCredential.user;
+        await signInWrapper(email, password);
     } catch (error) {
         console.error('Error creating user:', error);
         throw error; // Handle error appropriately in your application

@@ -59,7 +59,7 @@ function SignIn() {
                     <input type="email" placeholder="Email" className="input" onChange={(e) => setEmail(e.target.value)} />
                     <input type="password" placeholder="Password" className="input" onChange={(e) => setPassword(e.target.value)} />
                     {/* Button is disabled to prevent creating new accounts */}
-                    <button className="button" type="submit" disabled={true}>Sign Up</button>
+                    <button className="button" type="submit" disabled={false}>Sign Up</button>
                 </form>
             </div>
 
