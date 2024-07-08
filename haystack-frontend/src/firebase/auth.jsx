@@ -12,6 +12,8 @@ export const signInWrapper = async (email, password) => {
 
         await postIdTokenToSessionLogin('http://127.0.0.1:8000/session_login', idToken, csrfToken);
 
+        window.localStorage.setItem("isLogged", true);
+        
         await auth.signOut();
     }catch (error) {
         console.error('Error signing in:', error);

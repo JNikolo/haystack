@@ -8,7 +8,7 @@ import { useAuth } from './contexts/AuthContext';
 import './App.css';
 
 function App() {
-    const loggedIn = window.localStorage.getItem("isLogged");
+    
 
     return (
         <Router>
@@ -28,9 +28,10 @@ function App() {
 }
 
 function RequireAuth({ children }) {
-    const { userLoggedIn } = useAuth();
+    //const { userLoggedIn } = useAuth();
+    const loggedIn = window.localStorage.getItem("isLogged");
 
-    return userLoggedIn ? children : <Navigate to="/signin" replace />;
+    return loggedIn ? children : <Navigate to="/signin" replace />;
 }
 
 export default App;

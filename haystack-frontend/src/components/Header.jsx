@@ -1,17 +1,17 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+//import { useAuth } from '../contexts/AuthContext';
 import { signOutWrapper } from '../firebase/auth';
 import './Header.css'; 
 
 function Header() {
     const isLogged = window.localStorage.getItem("isLogged");
-    const { userLoggedIn } = useAuth();
+    //const { userLoggedIn } = useAuth();
     const navigate = useNavigate();
 
     const handleLogout = () => {
-        window.localStorage.removeItem("isLogged");
         signOutWrapper().then(() => {
+            window.localStorage.removeItem("isLogged");
             navigate("/signin"); // Redirect to sign-in page after sign out
         }).catch((error) => {
             console.error("Error signing out:", error);
@@ -36,7 +36,7 @@ function Header() {
                     </p>
                 </div>
                 {
-                    userLoggedIn
+                    isLogged
                     ? 
                     <p>
                         <button className='sign-out-button' onClick={handleLogout}>Sign Out</button>

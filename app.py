@@ -614,10 +614,18 @@ async def session_login(session_model: sessionModel):#, csrf_token: str = Depend
         print("decoded id")
         # Only process if the user signed in within the last 5 minutes.
         if (time.time() - decoded_claims['auth_time']) < (5 * 60):
+            print("in if statement")
             #expires_in = datetime.timedelta(days=5)
-            expires = datetime.datetime.now() + expires_in
+            print("before expires")
+            expires = datetime.datetime.now(datetime.timezone.utc) + expires_in
+            print("after expires")
+
             session_cookie = create_session_cookie(id_token, expires_in=expires_in)
+            print("created session cookie")
+
             response = JSONResponse({'status': 'success'})
+
+            print("setting cookie")
             response.set_cookie(
                 key='session', value=session_cookie, expires=expires, httponly=True, secure=True)
             print("exiting try")
