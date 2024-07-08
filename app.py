@@ -96,7 +96,10 @@ VECTOR_STORE = PineconeVectorStore(
 app = FastAPI()
 origins = [
     "http://localhost:5173",
-    "localhost:5173"
+    "localhost:5173",
+    'https://localhost:5173',
+    'http://127.0.0.1:5173',
+    'https://127.0.0.1:5173'
 ]
 
 app.add_middleware(
@@ -108,7 +111,7 @@ app.add_middleware(
 )
 
 # Authentication
-GOOGLE_APPLICATION_CREDENTIAL = os.getenv('GOOGLE_APPLICATION_CREDENTIAL')
+GOOGLE_APPLICATION_CREDENTIALS = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
 firebase_admin.initialize_app()
 
 # SECURITY/AUTHENTICATION
@@ -627,7 +630,7 @@ async def session_login(session_model: sessionModel):#, csrf_token: str = Depend
 
             print("setting cookie")
             response.set_cookie(
-                key='session', value=session_cookie, expires=expires, httponly=True, secure=True)
+                key='session', value=session_cookie, expires=expires, httponly=True, secure=True, samesite='none')
             print("exiting try")
             return response
         # User did not sign in recently. To guard against ID token theft, require
