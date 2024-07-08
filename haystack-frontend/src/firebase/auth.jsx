@@ -49,6 +49,8 @@ async function postIdTokenToSessionLogin(url, idToken, csrfToken) {
             headers: {
                 'Content-Type': 'application/json',
             },
+            mode: "cors",
+            credentials: "include",
             body: JSON.stringify({ idToken: idToken, csrfToken: csrfToken })
         });
 

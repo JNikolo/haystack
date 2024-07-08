@@ -108,8 +108,8 @@ app.add_middleware(
 )
 
 # Authentication
-GOOGLE_APPLICATION_CREDENTIAL = os.getenv('GOOGLE_APPLICATION_CREDENTIAL')
-firebase_admin.initialize_app()
+GOOGLE_APPLICATION_CREDENTIALS = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+firebase_admin.initialize_app(credential=firebase_admin.credentials.Certificate(GOOGLE_APPLICATION_CREDENTIALS))
 
 # SECURITY/AUTHENTICATION
 # function verify token
