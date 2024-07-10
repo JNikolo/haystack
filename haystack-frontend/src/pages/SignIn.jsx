@@ -4,12 +4,14 @@ import React, { useState } from "react";
 //import { useAuth } from "../contexts/AuthContext";
 import { signInWrapper, createUserWrapper } from "../firebase/auth";
 import { useNavigate, Navigate } from "react-router-dom";
+import { verifyLogin } from '../firebase/auth'
 import "./SignIn.css";
 import Header from '../components/Header';
 
 function SignIn() {
     //const { userLoggedIn } = useAuth();
-    const isLogged = window.localStorage.getItem("isLogged");
+   // const isLogged = window.localStorage.getItem("isLogged");
+    const isLogged = verifyLogin();
     const [signIn, toggle] = useState(true);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -51,6 +53,7 @@ function SignIn() {
     return (
         <>
         {isLogged && (<Navigate to="/getinsights" />)}
+        {/*(<Navigate to="/getinsights" />)*/}
         <div className="container">
             <Header></Header>
             <div className={`sign-up-container ${signIn ? "" : "active"}`}>

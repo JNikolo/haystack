@@ -8,11 +8,11 @@ export const signInWrapper = async (email, password) => {
 
         const idToken= await user.getIdToken();
 
-        const csrfToken = getCookie('csrfToken');
+        //const csrfToken = getCookie('csrfToken');
 
-        await postIdTokenToSessionLogin('http://127.0.0.1:8000/session_login', idToken, csrfToken);
+        await postIdTokenToSessionLogin('http://127.0.0.1:8000/session_login', idToken);//, csrfToken);
 
-        window.localStorage.setItem("isLogged", true);
+    // window.localStorage.setItem("isLogged", true);
         
         await auth.signOut();
     }catch (error) {
@@ -41,7 +41,7 @@ export const signOutWrapper = async () => {
 }
 
 
-async function postIdTokenToSessionLogin(url, idToken, csrfToken) {
+async function postIdTokenToSessionLogin(url, idToken){//, csrfToken) {
     // POST to session login endpoint.
     try {
         const response = await fetch(url, {
@@ -51,7 +51,7 @@ async function postIdTokenToSessionLogin(url, idToken, csrfToken) {
             },
             mode: 'cors', 
             credentials: 'include',
-            body: JSON.stringify({ idToken: idToken, csrfToken: csrfToken })
+            body: JSON.stringify({ idToken: idToken })//, csrfToken: csrfToken })
         });
 
         if (!response.ok) {
@@ -68,4 +68,25 @@ async function postIdTokenToSessionLogin(url, idToken, csrfToken) {
 function getCookie(name) {
     const cookieValue = document.cookie.match('(^|[^;]+)\\s*' + name + '\\s*=\\s*([^;]+)');
     return cookieValue ? cookieValue.pop() : '';
+}
+
+export async function verifyLogin(){
+    try {
+        const response = await fetch("http://127.0.0.1:8000/verify", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            mode: 'cors', 
+            credentials: 'include',
+        });
+        if (response.ok) {
+            return true;
+        } else {
+            return false;
+        }
+    } catch (error) {
+        console.error('Error verifying login:', error)
+        return false;
+    }
 }

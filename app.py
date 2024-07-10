@@ -1,6 +1,6 @@
 import datetime
 import time
-from fastapi import FastAPI, HTTPException, UploadFile, Form, File, Cookie, Depends
+from fastapi import FastAPI, HTTPException, UploadFile, Form, File, Cookie, Depends, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Any, Dict, Tuple
@@ -588,7 +588,7 @@ def qa_rag(request: QARAGRequest):
 
 class sessionModel(BaseModel):
     idToken: str
-    csrfToken: str
+#    csrfToken: str
 
 #create seesion cookie
 def create_session_cookie(id_token, expires_in):
@@ -629,8 +629,11 @@ async def session_login(session_model: sessionModel):#, csrf_token: str = Depend
             response = JSONResponse({'status': 'success'})
 
             print("setting cookie")
-            response.set_cookie(
-                key='session', value=session_cookie, expires=expires, httponly=True, secure=True, samesite='none')
+            #response.headers["Set-Cookie"] = "Secure; HttpOnly; Partitioned"
+            expire_time = expires.strftime('%a, %d %b %Y %H:%M:%S GMT')
+            response.headers["Set-Cookie"] = f"session={session_cookie}; Expires={expire_time}; Secure; HttpOnly; Partitioned; SameSite=None"
+            #response.set_cookie(
+            #    key='session', value=session_cookie, expires=expires, httponly=True, secure=True, samesite='none')
             print("exiting try")
             return response
         # User did not sign in recently. To guard against ID token theft, require
@@ -667,10 +670,17 @@ def access_restricted_content(session: str = Cookie(None)):
 ########################################################################################################################
 #Session Logout
 @app.post('/session_logout')
-def session_logout():
-    response = RedirectResponse(url='/login')
-    response.set_cookie('session', '', max_age=0)
-    return response
+def session_logout(request: Request):
+    token = request.cookies.get('session')
+    response = JSONResponse({'status': 'success'})
+    try:
+        decoded_claims = verify_id_token(token)
+        firebase_admin.auth.revoke_refresh_tokens(decoded_claims['sub'])
+        #response = RedirectResponse(url='/login')
+        response.set_cookie('session', '', max_age=0)
+        return response
+    except:
+        response.set_cookie('session', '', max_age=0)
 
 #VECTOR_STORE.delete(delete_all=True, namespace="user_1")
 #add_docs("OWASP Application Security Verification Standard 4.0.3-en.pdf", "pdfs", 'user_1', 1)
@@ -679,3 +689,26 @@ def session_logout():
 
 #submit_docs_for_rag("OWASP Application Security Verification Standard 4.0.3-en.pdf", "pdfs")
 #MONGODB_COLLECTION.delete_many({})
+
+@app.post('/verify')
+def verify(request: Request):
+    try:
+        token = request.cookies.get('session')
+        if not token:
+            raise HTTPException(status_code=401, detail="UNAUTHORIZED REQUEST!")
+        
+        decoded_token = verify_id_token(token)
+        return {"status": "success", "message": "logged in"} 
+    
+    except firebase_admin.auth.InvalidIdTokenError:
+        print("unauthorized")
+        raise HTTPException(status_code=401, detail="UNAUTHORIZED REQUEST!")
+
+    except firebase_admin.auth.ExpiredIdTokenError:
+        print("session expired")
+        raise HTTPException(status_code=401, detail="EXPIRED SESSION")
+
+    except Exception as e: 
+        print("problem")
+        print(e)
+        raise HTTPException(status_code=500, detail="Internal Server Error")

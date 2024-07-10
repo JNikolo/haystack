@@ -1,12 +1,14 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 //import { useAuth } from '../contexts/AuthContext';
-import { signOutWrapper } from '../firebase/auth';
+import { signOutWrapper, verifyLogin } from '../firebase/auth';
 import './Header.css'; 
 
 function Header() {
-    const isLogged = window.localStorage.getItem("isLogged");
+    //const isLogged = window.localStorage.getItem("isLogged");
     //const { userLoggedIn } = useAuth();
+    const isLogged = verifyLogin();
+    console.log(isLogged);
     const navigate = useNavigate();
 
     const handleLogout = () => {
