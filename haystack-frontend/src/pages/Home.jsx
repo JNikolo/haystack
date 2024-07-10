@@ -13,7 +13,6 @@ function Home() {
         link.href = homelogo;
         document.head.appendChild(link);
 
-        // Clean up by removing the link element when the component unmounts
         return () => {
             document.head.removeChild(link);
         };

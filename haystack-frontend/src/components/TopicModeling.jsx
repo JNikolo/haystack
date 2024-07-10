@@ -2,6 +2,7 @@ import React, {useState} from 'react';
 import { getPdfById } from '../utils/indexedDB';
 import { Bar } from 'react-chartjs-2';
 import 'chart.js/auto';
+import Loading from './Loading';
 
 
 function CountChart({ data, topicId }) {
@@ -154,7 +155,7 @@ function TopicModeling({selectedPdfs}) {
             <button onClick={handleGeneratePlots} disabled={isLoading || !(selectedPdfs.length > 0)}>
                 Generate Plot
             </button>
-            {isLoading && <p>Loading...</p>}
+            {isLoading && <Loading />}
             {error && <p className="error-message">{error}</p>}
             {apiData && apiData.count && apiData.importance ? (
                 <>

@@ -17,7 +17,7 @@ label.file-input-label {
     position: absolute;
     -ms-transform: translateX(-50%);
     transform: translateX(-50%);
-    top:190px;
+    top: 190px;
 }
 
 label.file-input-label:hover {
@@ -123,7 +123,7 @@ li input[type="checkbox"]:checked + label::after {
     overflow-x: hidden; /* Hide horizontal scrolling if not needed */
 }
 
-.uploaded-files{
+.uploaded-files {
     top: 60vh;
     margin-top: 30px;
     padding: 0px 10px;
@@ -142,7 +142,37 @@ li input[type="checkbox"]:checked + label::after {
     background-color: #8e959bde;
 }
 
-.upload-pdfs p{
+.upload-pdfs p {
     font-size: 20px;
     text-align: center;
+}
+
+.upload-progress {
+    margin-top: 20px;
+}
+
+.upload-progress-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.loading-animation {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.check-mark {
+    font-size: 20px;
+    color: green;
 }

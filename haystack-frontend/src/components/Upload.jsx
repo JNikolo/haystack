@@ -8,6 +8,8 @@ const MAX_TOTAL_SIZE = 200 * 1024 * 1024; // 20MB
 function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove }) {
     const [dragging, setDragging] = useState(false);
     const [pdfsTotalSize, setPdfsTotalSize] = useState(0);
+    const [uploadStatus, setUploadStatus] = useState({}); 
+    const [uploading, setUploading] = useState(false); 
     const hashList = [];
 
     const checkTotalSize = async (files) => {
@@ -54,6 +56,7 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
             await addPdfToDatabase(file);
         }
         onFileChange();
+        await uploadFiles(files);
     };
 
     // const removeDuplicates = (pdfList) => {
@@ -78,24 +81,37 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
             return;
         }
 
+        await uploadFiles(files);
+    };
+
+    const uploadFiles = async (files) => {
+        const user = auth.currentUser;
+        if (!user) {
+            console.error('User not authenticated');
+            return;
+        }
+
+        const user_id = user.uid;
+        const formData = new FormData();
+        const newFiles = [];
         const allPdfs = await getAllPdfs();
+
         for (let file of files) {
             const hash = await generateFileHash(file);
-            
-            if (hashList.includes(hash) || allPdfs.some(pdf => pdf.hash === hash)){
+
+            if (hashList.includes(hash) || allPdfs.some(pdf => pdf.hash === hash)) {
                 alert(`${file.name} is a duplicate. Skipping...`);
                 continue;
-            }
-            else{
+            } else {
                 hashList.push(hash);
-                newfiles.push(file);
+                newFiles.push(file);
                 await addPdfToDatabase(file);
             }
         }
 
-        newfiles.forEach((file) => {
+        newFiles.forEach((file) => {
             formData.append('pdf_list', file);
-            formData.append('doc_ids', file.name); // Assuming doc_id is just the index for this example
+            formData.append('doc_ids', file.name); 
         });
         formData.append('user_id', user_id);
 
@@ -104,24 +120,32 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
             console.log(`${key}: ${value}`);
         }
 
+        setUploading(true);
+
         try {
             const response = await fetch('http://localhost:8000/add_embeddings/', { // Replace with your backend URL
                 method: 'POST',
-                body: formData,
+                body: formData
             });
 
             if (response.ok) {
                 const data = await response.json();
                 console.log('Success:', data.message);
-                // Perform any additional actions needed upon success
+                newFiles.forEach(file => {
+                    setUploadStatus(prev => ({ ...prev, [file.name]: 'completed' }));
+                });
             } else {
                 const errorData = await response.json();
                 console.error('Error:', errorData.message);
-                // Handle the error accordingly
+                newFiles.forEach(file => {
+                    setUploadStatus(prev => ({ ...prev, [file.name]: 'failed' }));
+                });
             }
         } catch (error) {
             console.error('Error:', error.message);
-            // Handle the error accordingly
+            newFiles.forEach(file => {
+                setUploadStatus(prev => ({ ...prev, [file.name]: 'failed' }));
+            });
         }
 
         // Check file size and add to database
@@ -134,7 +158,6 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
     return (
         <div className="upload-pdfs">
             <h1 id="title">Upload your PDFs</h1>
-            {/* Drag and Drop Area */}
             <div
                 className={`file-drop-area ${dragging ? 'dragging' : ''}`}
                 onDragEnter={handleDragEnter}
@@ -152,18 +175,16 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
                     accept="application/pdf"
                     id="file-input"
                     onChange={handleFileInputChange}
-                    style={{ display: 'none' }} // Hide the file input visually
+                    style={{ display: 'none' }}
                 />
                 <label className="file-input-label" htmlFor="file-input">
                     Browse
                 </label>
             </div>
 
-            {/* File Input for Browse Button */}
-            
             <div className="uploaded-files">
-                {pdfList.length === 0 && <p>No PDFs uploaded yet</p>}
-                {pdfList.length > 0 && (
+                {!uploading && pdfList.length === 0 && <p>No PDFs uploaded yet</p>}
+                {!uploading && pdfList.length > 0 && (
                     <>
                         <p>Uploaded PDFs:</p>
                         <div className='pdf-list'>
@@ -191,6 +212,21 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
                     </>
                 )}
             </div>
+
+            {uploading && (
+                <div className="upload-progress">
+                    {Object.keys(uploadStatus).map((fileName) => (
+                        <div key={fileName} className="upload-progress-item">
+                            <p>{fileName}</p>
+                            {uploadStatus[fileName] === 'loading' ? (
+                                <div className="loading-animation"></div>
+                            ) : (
+                                <div className="check-mark">&#10003;</div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

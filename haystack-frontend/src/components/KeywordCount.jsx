@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import './KeywordCount.css';
 import { getPdfById } from '../utils/indexedDB';
+import Loading from './Loading';
 
 function KeywordCounting({ selectedPdfs }) {
     const [keyword, setKeyword] = useState('');
@@ -93,9 +94,13 @@ function KeywordCounting({ selectedPdfs }) {
                     disabled={isLoading || !(selectedPdfs.length > 0)} // Disable textarea when loading or no PDFs selected
                 />
             </form>
-            <button type="submit" className="keyword-submit" onClick={handleSubmit} disabled={isLoading || !(selectedPdfs.length > 0)}>
-                    {isLoading ? 'Counting...' : 'Submit'}
-            </button>
+            {isLoading ? (
+                <Loading />
+            ) : (
+                <button type="submit" className="keyword-submit" onClick={handleSubmit} disabled={!(selectedPdfs.length > 0)}>
+                    Submit
+                </button>
+            )}
             {error && <p className="error-message">{error}</p>}
             {apiResponse && (
                 <div className="keyword-output">
