@@ -6,15 +6,17 @@ import './Header.css';
 
 function Header() {
 
-    const [isLogged, setIsLogged] = useState(false);
+    const [isLogged, setIsLogged] = useState(null);
     const navigate = useNavigate();
 
     useEffect( () =>{
-        verifyLogin().then( (response) => {
-            setIsLogged(response);
-        }).catch((error) => {
-            console.log("Error verifying login status: ", error);
-        })       
+        verifyLogin()
+            .then( (response) => {
+                setIsLogged(response);
+            }).catch((error) => {
+                console.log("Error verifying login status: ", error);
+                setIsLogged(false);
+            })
     } ,[]);
     
 
@@ -30,6 +32,10 @@ function Header() {
         }).catch((error) => {
             console.error("Error signing out:", error);
         });
+    }
+
+    if (isLogged === null) {
+        return (<div>Loading...</div>); //or loading indicator
     }
 
     return (

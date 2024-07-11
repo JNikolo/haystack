@@ -1,5 +1,5 @@
 // src/App.jsx
-import React from 'react';
+import React, {useState, useEffect} from 'react';
 import { Navigate, BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Home from './pages/Home';
 import SignIn from './pages/SignIn';
@@ -28,11 +28,26 @@ function App() {
     );
 }
 
-async function RequireAuth({ children }) {
+function RequireAuth({ children }) {
+    const [loggedIn, setLoggedIn] = useState(null);
     //const { userLoggedIn } = useAuth();
   //  const loggedIn = window.localStorage.getItem("isLogged");
-    loggedIn = verifyLogin();
+//    const loggedIn = verifyLogin();
 //    return loggedIn ? children : <Navigate to="/signin" replace />;
+
+    useEffect( () =>{
+        verifyLogin()
+            .then( (response) => {
+                setLoggedIn(response);
+            }).catch((error) => {
+                console.log("Error verifying login status: ", error);
+                setLoggedIn(false);
+            })       
+    } ,[]);
+
+    if (loggedIn === null){
+        return (<div>Loading...</div>); //or loading indicator
+    } 
 
     return loggedIn ? children : <Navigate to="/signin" replace />;
 }

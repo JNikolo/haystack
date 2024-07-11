@@ -1,5 +1,5 @@
 // src/pages/SignIn.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 //import { auth } from "../firebase/config";
 //import { useAuth } from "../contexts/AuthContext";
 import { signInWrapper, createUserWrapper } from "../firebase/auth";
@@ -11,11 +11,22 @@ import Header from '../components/Header';
 function SignIn() {
     //const { userLoggedIn } = useAuth();
    // const isLogged = window.localStorage.getItem("isLogged");
-    const isLogged = verifyLogin();
+    //const isLogged = verifyLogin();
     const [signIn, toggle] = useState(true);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [isLogged, setIsLogged] = useState(null);
     const navigate = useNavigate();
+
+    useEffect( () =>{
+        verifyLogin()
+            .then( (response) => {
+                setIsLogged(response);
+            }).catch((error) => {
+                console.log("Error verifying login status: ", error);
+                setIsLogged(false);
+            })
+    } ,[]);
 
     const handleSignIn = (e) => {
         
@@ -50,9 +61,13 @@ function SignIn() {
         //     });
     };
 
+    if (isLogged){
+        return (<Navigate to="/getinsights" />);
+    }
+
     return (
         <>
-        {isLogged && (<Navigate to="/getinsights" />)}
+        {/*isLogged && (<Navigate to="/getinsights" />)*/}
         {/*(<Navigate to="/getinsights" />)*/}
         <div className="container">
             <Header></Header>
