@@ -1,15 +1,27 @@
-import React from 'react';
+import React, {useState, useEffect} from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 //import { useAuth } from '../contexts/AuthContext';
 import { signOutWrapper, verifyLogin } from '../firebase/auth';
 import './Header.css'; 
 
 function Header() {
+
+    const [isLogged, setIsLogged] = useState(false);
+    const navigate = useNavigate();
+
+    useEffect( () =>{
+        verifyLogin().then( (response) => {
+            setIsLogged(response);
+        }).catch((error) => {
+            console.log("Error verifying login status: ", error);
+        })       
+    } ,[]);
+    
+
     //const isLogged = window.localStorage.getItem("isLogged");
     //const { userLoggedIn } = useAuth();
-    const isLogged = verifyLogin();
+    //const isLogged = verifyLogin();
     console.log(isLogged);
-    const navigate = useNavigate();
 
     const handleLogout = () => {
         signOutWrapper().then(() => {
