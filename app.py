@@ -599,7 +599,6 @@ def create_session_cookie(id_token, expires_in):
 
 @app.post("/session_login/")
 async def session_login(session_model: sessionModel):#, csrf_token: str = Depends()):
-    print("ello there")
     id_token = session_model.idToken
     #csrf = session_model.csrfToken
      # Verify CSRF token
@@ -616,39 +615,32 @@ async def session_login(session_model: sessionModel):#, csrf_token: str = Depend
         decoded_claims = verify_id_token(id_token)
         print("decoded id")
         # Only process if the user signed in within the last 5 minutes.
-        if (time.time() - decoded_claims['auth_time']) < (5 * 60):
-            print("in if statement")
-            #expires_in = datetime.timedelta(days=5)
-            print("before expires")
-            expires = datetime.datetime.now(datetime.timezone.utc) + expires_in
-            print("after expires")
+        # if (time.time() - decoded_claims['auth_time']) < (5 * 60):
+        expires = datetime.datetime.now(datetime.timezone.utc) + expires_in
 
-            session_cookie = create_session_cookie(id_token, expires_in=expires_in)
-            print("created session cookie")
+        session_cookie = create_session_cookie(id_token, expires_in=expires_in)
 
-            response = JSONResponse({'status': 'success'})
+        response = JSONResponse({'status': 'success'})
 
-            print("setting cookie")
-            #response.headers["Set-Cookie"] = "Secure; HttpOnly; Partitioned"
-            expire_time = expires.strftime('%a, %d %b %Y %H:%M:%S GMT')
-            response.headers["Set-Cookie"] = f"session={session_cookie}; Expires={expire_time}; Secure; HttpOnly; Partitioned; SameSite=None"
-            #response.set_cookie(
-            #    key='session', value=session_cookie, expires=expires, httponly=True, secure=True, samesite='none')
-            print("exiting try")
-            return response
+        #response.headers["Set-Cookie"] = "Secure; HttpOnly; Partitioned"
+        expire_time = expires.strftime('%a, %d %b %Y %H:%M:%S GMT')
+        response.headers["Set-Cookie"] = f"session={session_cookie}; Expires={expire_time}; Secure; HttpOnly; Partitioned; SameSite=None"
+        #response.set_cookie(
+        #    key='session', value=session_cookie, expires=expires, httponly=True, secure=True, samesite='none')
+        print("exiting try")
+        return response
         # User did not sign in recently. To guard against ID token theft, require
         # re-authentication.
-        else:
-            # User did not sign in recently, require re-authentication
-            print("in else")
-            raise HTTPException(status_code=401, detail="Recent sign in required")
+        # else:
+        #     # User did not sign in recently, require re-authentication
+        #     print("in else")
+        #     raise HTTPException(status_code=401, detail="Recent sign in required")
     except firebase_admin.auth.InvalidIdTokenError:
-        print("unauthorized")
+        print("Invalid ID Token")
         raise HTTPException(status_code=401, detail="UNAUTHORIZED REQUEST!")
 
     except Exception as e: 
-        print("problem")
-        print(e)
+        print(f"Error in session_login: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 ########################################################################################################################
@@ -674,13 +666,18 @@ def session_logout(request: Request):
     token = request.cookies.get('session')
     response = JSONResponse({'status': 'success'})
     try:
-        decoded_claims = verify_id_token(token)
-        firebase_admin.auth.revoke_refresh_tokens(decoded_claims['sub'])
-        #response = RedirectResponse(url='/login')
-        response.set_cookie('session', '', max_age=0)
+        if token:
+            decoded_claims = verify_id_token(token)
+            firebase_admin.auth.revoke_refresh_tokens(decoded_claims['sub'])
+            #response = RedirectResponse(url='/login')
+        #response.set_cookie('session', '', max_age=0)
+        response.delete_cookie('session', path='/session_login', httponly=True, secure=True, samesite="none")
         return response
-    except:
-        response.set_cookie('session', '', max_age=0)
+    except Exception as e:
+        print(f"Error in session_logout: {e}")
+        # response.set_cookie('session', '', max_age=0)
+        response.delete_cookie('session', path='/session_login', httponly=True, secure=True, samesite="none")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 #VECTOR_STORE.delete(delete_all=True, namespace="user_1")
 #add_docs("OWASP Application Security Verification Standard 4.0.3-en.pdf", "pdfs", 'user_1', 1)
