@@ -29,12 +29,12 @@ function App() {
 }
 
 function RequireAuth({ children }) {
-    const [loggedIn, setLoggedIn] = useState(null);
-    //const { userLoggedIn } = useAuth();
+   // const [loggedIn, setLoggedIn] = useState(null);
+    const { userLoggedIn } = useAuth();
   //  const loggedIn = window.localStorage.getItem("isLogged");
 //    const loggedIn = verifyLogin();
 //    return loggedIn ? children : <Navigate to="/signin" replace />;
-
+/*
     useEffect( () =>{
         verifyLogin()
             .then( (response) => {
@@ -48,8 +48,8 @@ function RequireAuth({ children }) {
     if (loggedIn === null){
         return (<div>Loading...</div>); //or loading indicator
     } 
-
-    return loggedIn ? children : <Navigate to="/signin" replace />;
+*/
+    return userLoggedIn ? children : <Navigate to="/signin" replace />;
 }
 
 export default App;

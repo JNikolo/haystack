@@ -5,16 +5,16 @@ export const signInWrapper = async (email, password) => {
     try{
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user= userCredential.user;
-
-        const idToken= await user.getIdToken();
+        
+        // const idToken= await user.getIdToken();
 
         //const csrfToken = getCookie('csrfToken');
 
-        await postIdTokenToSessionLogin('http://127.0.0.1:8000/session_login', idToken);//, csrfToken);
+        // await postIdTokenToSessionLogin('http://127.0.0.1:8000/session_login', idToken);//, csrfToken);
 
     // window.localStorage.setItem("isLogged", true);
         
-        await auth.signOut();
+        //await auth.signOut();
     }catch (error) {
         console.error('Error signing in:', error);
         throw error; // Handle error appropriately in your application
@@ -41,7 +41,7 @@ export const signOutWrapper = async () => {
 }
 
 
-async function postIdTokenToSessionLogin(url, idToken){//, csrfToken) {
+export async function postIdTokenToSessionLogin(url, idToken){//, csrfToken) {
     // POST to session login endpoint.
     try {
         const response = await fetch(url, {
@@ -53,7 +53,7 @@ async function postIdTokenToSessionLogin(url, idToken){//, csrfToken) {
             credentials: 'include',
             body: JSON.stringify({ idToken: idToken })//, csrfToken: csrfToken })
         });
-
+        console.log(response)
         if (!response.ok) {
             throw new Error('Failed to post ID token to session login endpoint');
         }

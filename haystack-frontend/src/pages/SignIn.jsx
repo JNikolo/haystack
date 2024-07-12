@@ -1,7 +1,7 @@
 // src/pages/SignIn.jsx
 import React, { useState, useEffect } from "react";
 //import { auth } from "../firebase/config";
-//import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/AuthContext";
 import { signInWrapper, createUserWrapper } from "../firebase/auth";
 import { useNavigate, Navigate } from "react-router-dom";
 import { verifyLogin } from '../firebase/auth'
@@ -9,7 +9,7 @@ import "./SignIn.css";
 import Header from '../components/Header';
 
 function SignIn() {
-    //const { userLoggedIn } = useAuth();
+    const { userLoggedIn } = useAuth();
    // const isLogged = window.localStorage.getItem("isLogged");
     //const isLogged = verifyLogin();
     const [signIn, toggle] = useState(true);
@@ -18,15 +18,15 @@ function SignIn() {
     const [isLogged, setIsLogged] = useState(null);
     const navigate = useNavigate();
 
-    useEffect( () =>{
-        verifyLogin()
-            .then( (response) => {
-                setIsLogged(response);
-            }).catch((error) => {
-                console.log("Error verifying login status: ", error);
-                setIsLogged(false);
-            })
-    } ,[]);
+    // useEffect( () =>{
+    //     verifyLogin()
+    //         .then( (response) => {
+    //             setIsLogged(response);
+    //         }).catch((error) => {
+    //             console.log("Error verifying login status: ", error);
+    //             setIsLogged(false);
+    //         })
+    // } ,[]);
 
     const handleSignIn = (e) => {
         
@@ -61,7 +61,11 @@ function SignIn() {
         //     });
     };
 
-    if (isLogged){
+    // if (isLogged){
+    //     return (<Navigate to="/getinsights" />);
+    // }
+
+    if (userLoggedIn){
         return (<Navigate to="/getinsights" />);
     }
 
