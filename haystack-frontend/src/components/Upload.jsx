@@ -96,6 +96,8 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
         const newFiles = [];
         const allPdfs = await getAllPdfs();
 
+        setUploading(true);
+
         for (let file of files) {
             const hash = await generateFileHash(file);
 
@@ -106,12 +108,13 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
                 hashList.push(hash);
                 newFiles.push(file);
                 await addPdfToDatabase(file);
+                setUploadStatus(prev => ({ ...prev, [file.name]: 'loading' }));
             }
         }
 
         newFiles.forEach((file) => {
             formData.append('pdf_list', file);
-            formData.append('doc_ids', file.name); 
+            formData.append('doc_ids', file.name);
         });
         formData.append('user_id', user_id);
 
@@ -146,13 +149,27 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
             newFiles.forEach(file => {
                 setUploadStatus(prev => ({ ...prev, [file.name]: 'failed' }));
             });
+        } finally {
+            // Check file size and add to database
+            if (!await checkTotalSize(files)) {
+                return;
+            }
+            setUploading(false);
+            onFileChange();
         }
+    };
 
-        // Check file size and add to database
-        if (!await checkTotalSize(files)) {
-            return;
+    const handleRemovePdf = (id) => {
+        const pdf = pdfList.find((pdf) => pdf.id === id);
+        if (pdf) {
+            deletePdfById(id);
+            onPdfRemove(id);
+            setUploadStatus(prev => {
+                const updatedStatus = { ...prev };
+                delete updatedStatus[pdf.name];
+                return updatedStatus;
+            });
         }
-        onFileChange();
     };
 
     return (
@@ -183,11 +200,11 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
             </div>
 
             <div className="uploaded-files">
-                {!uploading && pdfList.length === 0 && <p>No PDFs uploaded yet</p>}
-                {!uploading && pdfList.length > 0 && (
+                {pdfList.length === 0 && <p>No PDFs uploaded yet</p>}
+                {pdfList.length > 0 && !uploading && (
                     <>
                         <p>Uploaded PDFs:</p>
-                        <div className='pdf-list'>
+                        <div className="pdf-list">
                             <ul>
                                 {pdfList.map((pdf) => (
                                     <li key={pdf.id} className="pdf-item">
@@ -200,7 +217,7 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
                                         <label htmlFor={`checkbox-${pdf.id}`}>{pdf.name}</label>
                                         <button
                                             className="remove-button"
-                                            onClick={() => onPdfRemove(pdf.id)}
+                                            onClick={() => handleRemovePdf(pdf.id)}
                                             disabled={loading}
                                         >
                                             X
