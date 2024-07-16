@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { addPdfToDatabase, generateFileHash, getAllPdfs, deletePdfById} from '../utils/indexedDB';
+import { addPdfToDatabase, generateFileHash, getAllPdfs, deletePdfById, clearDatabase } from '../utils/indexedDB';
 import { auth } from '../firebase/config';
 import './Upload.css';
 
@@ -11,6 +11,17 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
     const [uploadStatus, setUploadStatus] = useState({}); 
     const [uploading, setUploading] = useState(false); 
     const hashList = [];
+
+    useEffect(() => {
+        const clearData = async () => {
+            await clearDatabase();
+            onFileChange([]); 
+            setUploadStatus({});
+            setPdfsTotalSize(0);
+        };
+
+        clearData();
+    }, []);
 
     const checkTotalSize = async (files) => {
         const totalSize = files.reduce((acc, file) => acc + file.size, 0);
