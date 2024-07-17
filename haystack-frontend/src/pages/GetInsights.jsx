@@ -18,22 +18,23 @@ function GetInsights() {
 
     useEffect(() => {
         const handleBeforeUnload = (event) => {
-            // Standard message to show prompt
             const message = "Are you sure you want to leave? Unsaved changes may be lost.";
-            event.returnValue = message; // Standard way to display a prompt
-            return message; // For some browsers
+            event.preventDefault(); // Standard way to display a prompt in some browsers
+            event.returnValue = message; // For others
+            return message;
         };
-    
+
         const handleUnload = () => {
-            // Clear the database when the page is actually unloading
             clearDatabase().then(() => {
                 console.log("Database cleared on session end");
+            }).catch((error) => {
+                console.error("Error clearing the database: ", error);
             });
         };
-    
+
         window.addEventListener('beforeunload', handleBeforeUnload);
         window.addEventListener('unload', handleUnload);
-    
+
         return () => {
             window.removeEventListener('beforeunload', handleBeforeUnload);
             window.removeEventListener('unload', handleUnload);

@@ -12,16 +12,16 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
     const [uploading, setUploading] = useState(false); 
     const hashList = [];
 
-    useEffect(() => {
-        const clearData = async () => {
-            await clearDatabase();
-            onFileChange([]); 
-            setUploadStatus({});
-            setPdfsTotalSize(0);
-        };
+    // useEffect(() => {
+    //     const clearData = async () => {
+    //         await clearDatabase();
+    //         onFileChange([]); 
+    //         setUploadStatus({});
+    //         setPdfsTotalSize(0);
+    //     };
 
-        clearData();
-    }, []);
+    //     clearData();
+    // }, []);
 
     const checkTotalSize = async (files) => {
         const totalSize = files.reduce((acc, file) => acc + file.size, 0);
