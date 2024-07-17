@@ -97,7 +97,7 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
             formData.append('pdf_list', file);
             formData.append('doc_ids', file.name); // Assuming doc_id is just the index for this example
         });
-        formData.append('user_id', user_id);
+        //formData.append('user_id', user_id);
 
         // Debugging: Log FormData entries
         for (let [key, value] of formData.entries()) {
@@ -105,9 +105,11 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
         }
 
         try {
-            const response = await fetch('http://localhost:8000/add_embeddings/', { // Replace with your backend URL
+            const response = await fetch('http://127.0.0.1:8000/add_embeddings/', { // Replace with your backend URL
                 method: 'POST',
+                mode: 'cors', 
                 body: formData,
+                credentials: 'include',
             });
 
             if (response.ok) {

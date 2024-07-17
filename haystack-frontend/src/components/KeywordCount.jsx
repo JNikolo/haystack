@@ -33,6 +33,8 @@ function KeywordCounting({ selectedPdfs }) {
             const response = await fetch(`http://127.0.0.1:8000/searchkeyword/?keyword=${keyword}`, {
                 method: 'POST',
                 body: formData,
+                mode: 'cors',
+                credentials: 'include',
             });
 
             if (!response.ok) {
@@ -83,7 +85,7 @@ function KeywordCounting({ selectedPdfs }) {
     return (
         <div className="keyword-counting">
             <h2>Get keyword counting for your PDFs!</h2>
-            <form onSubmit={handleSubmit} className="keyword-form">
+            <form className="keyword-form">
                 <textarea
                     value={keyword}
                     onChange={handleKeywordChange}
@@ -93,7 +95,7 @@ function KeywordCounting({ selectedPdfs }) {
                     disabled={isLoading || !(selectedPdfs.length > 0)} // Disable textarea when loading or no PDFs selected
                 />
             </form>
-            <button type="submit" className="keyword-submit" disabled={isLoading}>
+            <button type="submit" className="keyword-submit" disabled={isLoading} onClick={handleSubmit}>
                     {isLoading ? 'Counting...' : 'Submit'}
             </button>
             {error && <p className="error-message">{error}</p>}
