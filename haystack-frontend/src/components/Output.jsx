@@ -42,18 +42,20 @@ function Output({ activeButton, selectedPdfs }) {
 
         const requestBody = {
             query: question,
-            user_id: user_id,
+            //user_id: user_id,
             doc_ids: doc_ids
         };
 
         console.log('Request Body: ', requestBody);
 
         try {
-            const response = await fetch('http://localhost:8000/qa_rag/', { // Replace with your backend URL
+            const response = await fetch('http://127.0.0.1:8000/qa_rag/', { // Replace with your backend URL
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
+                mode: 'cors',
+                credentials: 'include',
                 body: JSON.stringify(requestBody)
             });
 
@@ -109,12 +111,14 @@ function Output({ activeButton, selectedPdfs }) {
                 return;
             }
 
-            const user_id = user.uid;
+            //const user_id = user.uid;
 
             // Make the fetch call to your backend
             try {
-                const response = await fetch(`http://localhost:8000/delete_embeddings/?user_id=${user_id}`, {
+                const response = await fetch('http://127.0.0.1:8000/delete_embeddings/', {
                     method: 'DELETE',
+                    credentials: 'include',
+                    mode: 'cors',
                     // Add any headers or body data if required
                 });
 

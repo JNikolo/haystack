@@ -34,6 +34,8 @@ function KeywordCounting({ selectedPdfs }) {
             const response = await fetch(`http://127.0.0.1:8000/searchkeyword/?keyword=${keyword}`, {
                 method: 'POST',
                 body: formData,
+                mode: 'cors',
+                credentials: 'include',
             });
 
             if (!response.ok) {

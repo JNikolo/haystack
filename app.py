@@ -1,11 +1,11 @@
 import datetime
 import time
-from fastapi import FastAPI, HTTPException, UploadFile, Form, File, Cookie, WebSocket, WebSocketDisconnect
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, HTTPException, UploadFile, Form, File, Cookie, Depends, Request
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
-from typing import List, Any, Dict, Tuple
-from starlette.background import BackgroundTasks
-import json
+from typing import Annotated, List, Any, Dict, Tuple
+
+import uvicorn
 
 #useful libraries
 from fastapi.responses import HTMLResponse
@@ -15,6 +15,7 @@ from pypdf import PdfReader
 import os
 from dotenv import load_dotenv
 from pydantic import BaseModel
+
 
 #Embeddings temp
 import weaviate
@@ -95,7 +96,10 @@ VECTOR_STORE = PineconeVectorStore(
 app = FastAPI()
 origins = [
     "http://localhost:5173",
-    "localhost:5173"
+    "localhost:5173",
+    'https://localhost:5173',
+    'http://127.0.0.1:5173',
+    'https://127.0.0.1:5173'
 ]
 
 app.add_middleware(
@@ -107,8 +111,8 @@ app.add_middleware(
 )
 
 # Authentication
-GOOGLE_APPLICATION_CREDENTIAL = os.getenv('GOOGLE_APPLICATION_CREDENTIAL')
-firebase_admin.initialize_app()
+GOOGLE_APPLICATION_CREDENTIALS = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+firebase_admin.initialize_app(credential=firebase_admin.credentials.Certificate(GOOGLE_APPLICATION_CREDENTIALS))
 
 # SECURITY/AUTHENTICATION
 # function verify token
@@ -486,38 +490,68 @@ def Haystack_qa_many(pdf_list, query: str):
 ########################################################################################################################
 ######################################################## ROUTES ########################################################
 ########################################################################################################################
-#route to the /querydocuments page
-@app.get("/querydocuments/{query}/topk/{top_k}")
-def read_item(query: str, top_k: int):
-    return {"q": query, "top_k": top_k}
 
-@app.post("/uploadfiles/")
-async def create_upload_files(files: list[UploadFile]):
+#################################################Dependency###########################################
+#@app.post('/verify')
+async def verify_user(request: Request):
     try:
-        for file in files:
-            reader = PdfReader(file.file)
-            text = ""
-            for page_num in range(len(reader.pages)):
-                text += reader.pages[page_num].extract_text()
-            # Save the extracted text to a .txt file
-            # For now it is saved in the "texts" directory
-            # Eventually, we will need to store it in a database or file system
-            output_filename = "texts/" + file.filename.replace(".pdf", ".txt")
-            with open(output_filename, "w", encoding="utf-8") as txt_file:
-                txt_file.write(text)
-        return {"status": "success", "message": "Text extracted successfully."}
-    except Exception as e:
-        return {"status": "fail", "message": f"Failed to extract text. Error ocurred: {e}"}
+        print("Request Headers: ", request.cookies)
+        token = request.cookies.get('session')
+        print("Token received: ", token)
+        if not token:
+            raise HTTPException(status_code=401, detail="UNAUTHORIZED REQUEST!")
+        
+        decoded_claims = firebase_admin.auth.verify_session_cookie(token)
+        print("Returing decoded claims")
+        return decoded_claims
     
-@app.post("/searchkeyword/")
+    except firebase_admin.auth.InvalidIdTokenError:
+        print("unauthorized")
+        raise HTTPException(status_code=401, detail="UNAUTHORIZED REQUEST!")
+
+    except firebase_admin.auth.ExpiredIdTokenError:
+        print("session expired")
+        raise HTTPException(status_code=401, detail="EXPIRED SESSION")
+
+    except Exception as e: 
+        print("problem")
+        print(e)
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+#################################################Routes###################################################
+
+# #route to the /querydocuments page
+# @app.get("/querydocuments/{query}/topk/{top_k}")
+# def read_item(query: str, top_k: int):
+#     return {"q": query, "top_k": top_k}
+
+# @app.post("/uploadfiles/")
+# async def create_upload_files(files: list[UploadFile]):
+#     try:
+#         for file in files:
+#             reader = PdfReader(file.file)
+#             text = ""
+#             for page_num in range(len(reader.pages)):
+#                 text += reader.pages[page_num].extract_text()
+#             # Save the extracted text to a .txt file
+#             # For now it is saved in the "texts" directory
+#             # Eventually, we will need to store it in a database or file system
+#             output_filename = "texts/" + file.filename.replace(".pdf", ".txt")
+#             with open(output_filename, "w", encoding="utf-8") as txt_file:
+#                 txt_file.write(text)
+#         return {"status": "success", "message": "Text extracted successfully."}
+#     except Exception as e:
+#         return {"status": "fail", "message": f"Failed to extract text. Error ocurred: {e}"}
+    
+@app.post("/searchkeyword/", dependencies=[Depends(verify_user)])
 async def search_keyword(files: List[UploadFile], keyword: str) -> Dict[str, Any]:
     try:
         keyword_counts, total = await search_keyword_in_pdfs(files, keyword)
         return {"status":"success", "keyword": keyword, "total": total, "results": keyword_counts}
     except Exception as e:
-        raise HTTPException(status_code=401, detail="UNAUTHORIZED REQUEST!")
-    
-@app.post("/conceptsfrequencies/")
+        return {"status":"fail", "keyword": keyword, "message": f"Failed to search for keyword. Error ocurred: {e}"}
+
+@app.post("/conceptsfrequencies/", dependencies=[Depends(verify_user)])
 async def concept_frequencies(files: List[UploadFile]):
 
     try:
@@ -527,7 +561,7 @@ async def concept_frequencies(files: List[UploadFile]):
         return {"status": "fail", "message": f"Failed to extract concepts. Error ocurred: {e}"}
 
 
-@app.post("/topicmodeling/")
+@app.post("/topicmodeling/", dependencies=[Depends(verify_user)])
 async def topic_modeling(files: List[UploadFile]):
     try:
         df_count, df_importance = await topic_modeling_from_pdfs(files)
@@ -540,39 +574,52 @@ async def topic_modeling(files: List[UploadFile]):
         return {"status": "fail", "message": f"Failed to perform topic modeling. Error ocurred: {e}"}
 
 @app.delete("/delete_embeddings/")
-def delete_embeddings(user_id: str): 
+def delete_embeddings(user_data: Annotated[dict, Depends(verify_user)],): 
     try:
+        user_id = user_data['uid']
         VECTOR_STORE.delete(delete_all=True, namespace=user_id)
         return {"status": "success", "message": "Embeddings deleted successfully."}
     except Exception as e:
         return {"status": "fail", "message": f"Failed to delete embeddings. Error ocurred: {e}"}
-
+   
 @app.post("/add_embeddings/")
 async def add_embeddings(
-    user_id: str = Form(...),
+    #user_id: str = Form(...),
+    user_data: Annotated[dict, Depends(verify_user)],
     pdf_list: List[UploadFile] = File(...),
     doc_ids: List[str] = Form(...),
+    #data: Annotated[Tuple[List[UploadFile], List[str], dict], Depends(get_data)]
+    #request: Request
 ):
     try:
-        print(f"Received user_id: {user_id}")
+        # Verify user
+        #user_data = await verify_user(request)
+        #print(f"User Data: {user_data}")
+
+        # Get form data
+        #form = await request.form()
+        #doc_ids = form.getlist("doc_ids")
+       # pdf_list = form.getlist("pdf_list")
+        print(f"Received user_id: {user_data['uid']}")
         print(f"Received doc_ids: {doc_ids}")
         print(f"Number of files: {len(pdf_list)}")
         for file, doc_id in zip(pdf_list, doc_ids):
-            add_docs(file, user_id, doc_id)  
+            add_docs(file, user_data['uid'], doc_id)  
         return {"status": "success", "message": "Embeddings added successfully."}
     except Exception as e:
         return {"status": "fail", "message": f"Failed to add embeddings. Error occurred: {e}"}
 
 class QARAGRequest(BaseModel):
     query: str
-    user_id: str
+    #user_id: str
     doc_ids: List[str]
 
 @app.post("/qa_rag/")
-def qa_rag(request: QARAGRequest):
+def qa_rag(request: QARAGRequest, user_data: Annotated[dict, Depends(verify_user)],):
     replies = []
+    user_id = user_data['uid']
     for id in request.doc_ids:
-        reply = Haystack_qa_1(request.query, request.user_id, id)
+        reply = Haystack_qa_1(request.query, user_id, id)
         replies.append(reply)
     return {"status":"success", 'result' : replies}
 
@@ -585,40 +632,101 @@ def qa_rag(request: QARAGRequest):
 
 class sessionModel(BaseModel):
     idToken: str
-    csrfToken: str
+#    csrfToken: str
 
-@app.post("/sessionLogin")
-def session_login(session_model: sessionModel, csrf_token: str = Cookie(None)):
+#create seesion cookie
+def create_session_cookie(id_token, expires_in):
+    # Implement your logic to create a session cookie based on the ID token
+    # Example implementation:
+    session_cookie = firebase_admin.auth.create_session_cookie(id_token, expires_in=expires_in)
+    return session_cookie
+
+@app.post("/session_login/")
+async def session_login(session_model: sessionModel):#, csrf_token: str = Depends()):
     id_token = session_model.idToken
-    csrf = session_model.csrfToken
+    #csrf = session_model.csrfToken
      # Verify CSRF token
-    if not csrf_token or csrf != csrf_token:
-        raise HTTPException(status_code=401, detail="UNAUTHORIZED REQUEST!")
+    #if not csrf_token or csrf != csrf_token:
+    #    raise HTTPException(status_code=401, detail="UNAUTHORIZED REQUEST!")
 
     expires_in = datetime.timedelta(days=5)
 
     # To ensure that cookies are set only on recently signed in users, check auth_time in
     # ID token before creating a cookie.
+    print("id token obtained: ", id_token)
     try:
+        print("entered try")
         decoded_claims = verify_id_token(id_token)
+        print("decoded id")
         # Only process if the user signed in within the last 5 minutes.
-        if (time.time() - decoded_claims['auth_time']) < (5 * 60):
-            expires_in = datetime.timedelta(days=5)
-            expires = datetime.datetime.now() + expires_in
-            session_cookie = create_session_cookie(id_token, expires_in=expires_in)
-            response = JSONResponse({'status': 'success'})
-            response.set_cookie(
-                key='session', value=session_cookie, expires=expires, httponly=True, secure=True)
-            return response
+        # if (time.time() - decoded_claims['auth_time']) < (5 * 60):
+        expires = datetime.datetime.now(datetime.timezone.utc) + expires_in
+
+        session_cookie = create_session_cookie(id_token, expires_in=expires_in)
+
+        print("Session cookie: ", session_cookie)
+
+        response = JSONResponse({'status': 'success'})
+
+        #response.headers["Set-Cookie"] = "Secure; HttpOnly; Partitioned"
+        expire_time = expires.strftime('%a, %d %b %Y %H:%M:%S GMT')
+        response.headers["Set-Cookie"] = f"session={session_cookie}; Expires={expire_time}; Secure; HttpOnly; Partitioned; SameSite=None; Path=/;"
+        #response.set_cookie(
+        #    key='session', value=session_cookie, domain=".localhost",path="/",expires=expires, httponly=True, secure=False, samesite="None")
+        print("exiting try")
+        return response
         # User did not sign in recently. To guard against ID token theft, require
         # re-authentication.
-        else:
-            # User did not sign in recently, require re-authentication
-            raise HTTPException(status_code=401, detail="Recent sign in required")
+        # else:
+        #     # User did not sign in recently, require re-authentication
+        #     print("in else")
+        #     raise HTTPException(status_code=401, detail="Recent sign in required")
     except firebase_admin.auth.InvalidIdTokenError:
+        print("Invalid ID Token")
         raise HTTPException(status_code=401, detail="UNAUTHORIZED REQUEST!")
 
+    except Exception as e: 
+        print(f"Error in session_login: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+########################################################################################################################
+#Verify Session cookies
+'''
+@app.get("/profile")
+def access_restricted_content(session: str = Cookie(None)):
+    if not session:
+        return RedirectResponse(url='/login')
+
+    try:
+        # Verify the session cookie and check if it's revoked
+        decoded_claims = firebase_admin.auth.verify_session_cookie(session, check_revoked=True)
+        return serve_content_for_user(decoded_claims)
+    
+    except firebase_admin.auth.InvalidSessionCookieError:
+        return RedirectResponse(url='/login')
+'''
+########################################################################################################################
+#Session Logout
+@app.post('/session_logout')
+def session_logout(request: Request):
+    token = request.cookies.get('session')
+    print("Token in session logout: ", token)
+    response = JSONResponse({'status': 'success'})
+    try:
+        if token:
+            print("if started")
+            decoded_claims = firebase_admin.auth.verify_session_cookie(token)
+            firebase_admin.auth.revoke_refresh_tokens(decoded_claims['sub'])
+            print("Refresh tokens revoked")
+            #response = RedirectResponse(url='/login')
+        #response.set_cookie('session', '', max_age=0)
+        response.delete_cookie('session', path='/', httponly=True)
+        print("Cookie deleted. Exiting session_logout")
+        return response
     except Exception as e:
+        print(f"Error in session_logout: {e}")
+        response.delete_cookie('session', path='/', httponly=True)
+        #response.delete_cookie('session', path='/session_login', httponly=True, secure=True, samesite="None")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 #VECTOR_STORE.delete(delete_all=True, namespace="user_1")
@@ -628,3 +736,6 @@ def session_login(session_model: sessionModel, csrf_token: str = Cookie(None)):
 
 #submit_docs_for_rag("OWASP Application Security Verification Standard 4.0.3-en.pdf", "pdfs")
 #MONGODB_COLLECTION.delete_many({})
+
+# if __name__ == "__main__":
+#     uvicorn.run(app, host="127.0.0.1", port=8000,) #ssl_keyfile="cert-key.pem", ssl_certfile="fullchain.pem")
