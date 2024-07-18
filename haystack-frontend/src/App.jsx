@@ -6,9 +6,13 @@ import SignIn from './pages/SignIn';
 import GetInsights from './pages/GetInsights';
 import { useAuth } from './contexts/AuthContext';
 import { verifyLogin } from './firebase/auth';
+import { clearDatabase, getAllPdfs, deletePdfById, addPdfToDatabase } from './utils/indexedDB';
 import './App.css';
 
 function App() {
+
+    const [pdfList, setPdfList] = useState([]);
+
     
 
     return (
@@ -19,7 +23,9 @@ function App() {
                 <Route path="/getinsights"
                     element={
                         <RequireAuth>
-                            <GetInsights />
+                            <GetInsights 
+                                pdfList={pdfList}
+                                setPdfList={setPdfList}/>
                         </RequireAuth>
                     } 
                 />

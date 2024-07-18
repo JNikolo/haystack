@@ -6,7 +6,7 @@ import './Header.css';
 
 function Header() {
 
-    const [isLogged, setIsLogged] = useState(null);
+    //const [isLogged, setIsLogged] = useState(null);
     const navigate = useNavigate();
 
     // useEffect( () =>{
@@ -27,7 +27,7 @@ function Header() {
 
     const handleLogout = () => {
         signOutWrapper().then(() => {
-            window.localStorage.removeItem("isLogged");
+            //window.localStorage.removeItem("isLogged");
             navigate("/signin"); // Redirect to sign-in page after sign out
         }).catch((error) => {
             console.error("Error signing out:", error);

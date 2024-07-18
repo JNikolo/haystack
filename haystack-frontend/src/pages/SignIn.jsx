@@ -15,7 +15,7 @@ function SignIn() {
     const [signIn, toggle] = useState(true);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [isLogged, setIsLogged] = useState(null);
+    //const [isLogged, setIsLogged] = useState(null);
     const navigate = useNavigate();
 
     // useEffect( () =>{

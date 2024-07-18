@@ -730,9 +730,6 @@ def session_logout(request: Request):
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-@app.post('/check-session/', dependencies=[Depends(verify_user)])
-def check_cookie():
-    return {"status": "success", "message": "User authenticated successfully."}
 #VECTOR_STORE.delete(delete_all=True, namespace="user_1")
 #add_docs("OWASP Application Security Verification Standard 4.0.3-en.pdf", "pdfs", 'user_1', 1)
 #add_docs("file_87.pdf", "pdfs", 'user_1', 2)

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { addPdfToDatabase, generateFileHash, getAllPdfs, deletePdfById, clearDatabase } from '../utils/indexedDB';
 import { auth } from '../firebase/config';
+import { useAuth } from '../contexts/AuthContext';
 import './Upload.css';
 
 const MAX_TOTAL_SIZE = 200 * 1024 * 1024; // 20MB
@@ -11,6 +12,7 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
     const [uploadStatus, setUploadStatus] = useState({}); 
     const [uploading, setUploading] = useState(false); 
     const hashList = [];
+    const { userLoggedIn } = useAuth();
 
     // useEffect(() => {
     //     const clearData = async () => {
@@ -77,13 +79,14 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
     // };
 
     const handleFileInputChange = async (event) => {
-        const user = auth.currentUser;
-        if (!user) {
+        //const user = auth.currentUser;
+        if (!userLoggedIn) {
+            alert('You are not authenticated. Please sign in to upload PDFs.');
             console.error('User not authenticated');
             return;
         }
 
-        const user_id = user.uid;
+        //const user_id = user.uid;
         const formData = new FormData();
         const newfiles = [];
 
@@ -96,13 +99,13 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
     };
 
     const uploadFiles = async (files) => {
-        const user = auth.currentUser;
-        if (!user) {
-            console.error('User not authenticated');
-            return;
-        }
+        //const user = auth.currentUser;
+        // if (!userLoggedIn) {
+        //     console.error('User not authenticated');
+        //     return;
+        // }
 
-        const user_id = user.uid;
+        //const user_id = user.uid;
         const formData = new FormData();
         const newFiles = [];
         const allPdfs = await getAllPdfs();

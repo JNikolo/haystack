@@ -15,66 +15,33 @@ export function AuthProvider({ children }){
     const [userLoggedIn, setUserLoggedIn] = useState(false);
     const [loading, setLoading] = useState(true);
 
-    // useEffect(() => {
-    //     const unsubscribe = onAuthStateChanged(auth, initializeUser);
-    //     return unsubscribe;
-    // }, []);
-
-    // async function initializeUser(user) {
-    //     if (user) {
-    //         console.log("intializing user...")
-    //         console.log("logged in: ", user)
-    //         //setCurrentUser({...user});
-    //         //const idToken= await user.getIdToken();
-    //         //const idToken = await auth.currentUser.getIdToken().then(postIdTokenToSessionLogin);
-    //         // await postIdTokenToSessionLogin(idToken);//, csrfToken);
-    //         //console.log("logged in: ", user)
-    //         logEvent(analytics, "login")
-    //         setUserLoggedIn(true);
-    //     } else {
-    //         console.log("else statement...")
-    //         console.log("logged out: ",user)
-    //         //console.log("logged out: ",user)
-    //         //setCurrentUser(null);
-    //         //const signOutResponse = await signOutCookie();
-    //         //console.log(signOutResponse);
-    //         logEvent(analytics, "logout")
-    //         setUserLoggedIn(false);
-    //     }
-    //     setLoading(false);
-    // }
-
     useEffect(() => {
-        checkSession();
+        const unsubscribe = onAuthStateChanged(auth, initializeUser);
+        return unsubscribe;
     }, []);
 
-    async function checkSession() {
-        try {
-            const response = await fetch("http://127.0.0.1:8000/check-session/", {
-                method: 'POST',
-                // headers: {
-                //     'Content-Type': 'application/json',
-                // },
-                mode: 'cors', 
-                credentials: 'include',
-            });
-            if (response.ok) {
-                //setCurrentUser(response.data.user);
-                setUserLoggedIn(true);
-                logEvent(analytics, "login");
-            } else {
-                //setCurrentUser(null);
-                setUserLoggedIn(false);
-                logEvent(analytics, "logout");
-            }
-        } catch (error) {
-            console.error("Error checking session:", error);
+    async function initializeUser(user) {
+        if (user) {
+            console.log("intializing user...")
+            console.log("logged in: ", user)
+            //setCurrentUser({...user});
+            //const idToken= await user.getIdToken();
+            //const idToken = await auth.currentUser.getIdToken().then(postIdTokenToSessionLogin);
+            // await postIdTokenToSessionLogin(idToken);//, csrfToken);
+            //console.log("logged in: ", user)
+            logEvent(analytics, "login")
+            setUserLoggedIn(true);
+        } else {
+            console.log("else statement...")
+            console.log("logged out: ",user)
+            //console.log("logged out: ",user)
             //setCurrentUser(null);
+            //const signOutResponse = await signOutCookie();
+            //console.log(signOutResponse);
+            logEvent(analytics, "logout")
             setUserLoggedIn(false);
-            logEvent(analytics, "logout");
-        } finally {
-            setLoading(false);
         }
+        setLoading(false);
     }
 
     const value = {
@@ -85,7 +52,7 @@ export function AuthProvider({ children }){
 
     return (
         <AuthContext.Provider value={value}>
-            {!loading && children}
+            { !loading && children }
         </AuthContext.Provider>
     );
 };

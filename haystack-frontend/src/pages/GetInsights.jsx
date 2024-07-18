@@ -8,10 +8,9 @@ import Upload from "../components/Upload";
 import './GetInsights.css';
 import { clearDatabase, getAllPdfs, deletePdfById, addPdfToDatabase } from '../utils/indexedDB';
 
-function GetInsights() {
+function GetInsights({pdfList, setPdfList}) {
     const [loading, setLoading] = useState(false);
     const [activeButton, setActiveButton] = useState('left');
-    const [pdfList, setPdfList] = useState([]);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [selectedPdfs, setSelectedPdfs] = useState([]);
 
@@ -40,6 +39,11 @@ function GetInsights() {
             window.removeEventListener('unload', handleUnload);
         };
     }, []);
+
+    useEffect(() => {
+        loadPdfs();
+    }
+    , []);
 
     // const handleSubmit = async (selectedPdfs) => {
     //     setLoading(true);
@@ -98,7 +102,6 @@ function GetInsights() {
 
     const handleFileChange = async () => {
         await loadPdfs(); // Reload PDFs after file change
-        
     };
 
     const handleCheckboxChange = (event, id) => {
@@ -112,7 +115,7 @@ function GetInsights() {
         console.log('id: ', id);
         const updatedPdfs = pdfList.map(pdf => pdf.id === id ? { ...pdf, selected: !pdf.selected } : pdf);
         console.log('updatedPdfs: ', updatedPdfs[0].selected);
-        setPdfList(updatedPdfs);
+        //setPdfList(updatedPdfs);
 
     };
 
