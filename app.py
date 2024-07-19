@@ -370,7 +370,7 @@ def Haystack_qa_1(query: str, namespace:str, doc_id:int):
     # Define a prompt template.
     # LangChain passes these documents to the {context} input variable and the user's query to the {question} variable.
     template = """
-    You are looking for the specified keywords and answering questions based on the keywords.
+    You are looking for the specified keywords or answering questions based on the context given.
     Use the following pieces of retrieved context to answer the question at the end.
     If you don't know the answer, just say that you don't know.
 

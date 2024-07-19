@@ -25,15 +25,37 @@ function Header() {
     //const isLogged = verifyLogin();
     // console.log(isLogged);
 
-    const handleLogout = () => {
-        signOutWrapper().then(() => {
-            //window.localStorage.removeItem("isLogged");
+    // const handleLogout = async() => {
+    //     signOutWrapper().then(() => {
+    //         //window.localStorage.removeItem("isLogged");
+    //         navigate("/signin"); // Redirect to sign-in page after sign out
+    //     }).catch((error) => {
+    //         console.error("Error signing out:", error);
+    //     });
+    // }
+    const handleLogout = async () => {
+        try {
+            await signOutWrapper();
+            // Call delete_embeddings route after signing out
+            const response = await fetch('http://127.0.0.1:8000/delete_embeddings/', {
+                method: 'DELETE',
+                credentials: 'include',
+                mode: 'cors',
+                // Add any headers or body data if required
+            });
+    
+            if (response.ok) {
+                console.log("Embeddings deleted successfully");
+            } else {
+                console.error("Failed to delete embeddings:", response.statusText);
+            }
+    
             navigate("/signin"); // Redirect to sign-in page after sign out
-        }).catch((error) => {
+        } catch (error) {
             console.error("Error signing out:", error);
-        });
-    }
-
+        }
+    };
+    
     // if (isLogged === null) {
     //     return (<div>Loading...</div>); //or loading indicator
     // }

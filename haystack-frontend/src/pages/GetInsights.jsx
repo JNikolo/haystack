@@ -115,7 +115,8 @@ function GetInsights({pdfList, setPdfList}) {
         console.log('id: ', id);
         const updatedPdfs = pdfList.map(pdf => pdf.id === id ? { ...pdf, selected: !pdf.selected } : pdf);
         console.log('updatedPdfs: ', updatedPdfs[0].selected);
-        //setPdfList(updatedPdfs);
+        //was commented out \/
+        setPdfList(updatedPdfs);
 
     };
 

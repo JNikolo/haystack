@@ -99,44 +99,44 @@ function Output({ activeButton, selectedPdfs }) {
         );
     };
 
-    useEffect(() => {
-        const handleBeforeUnload = async (event) => {
-            // Prevent the default action
-            event.preventDefault();
-            event.returnValue = '';
+    // useEffect(() => {
+    //     const handleBeforeUnload = async (event) => {
+    //         // Prevent the default action
+    //         event.preventDefault();
+    //         event.returnValue = '';
 
-            const user = auth.currentUser;
-            if (!user) {
-                console.error('User not authenticated');
-                return;
-            }
+    //         const user = auth.currentUser;
+    //         if (!user) {
+    //             console.error('User not authenticated');
+    //             return;
+    //         }
 
-            //const user_id = user.uid;
+    //         //const user_id = user.uid;
 
-            // Make the fetch call to your backend
-            try {
-                const response = await fetch('http://127.0.0.1:8000/delete_embeddings/', {
-                    method: 'DELETE',
-                    credentials: 'include',
-                    mode: 'cors',
-                    // Add any headers or body data if required
-                });
+    //         // Make the fetch call to your backend
+    //         try {
+    //             const response = await fetch('http://127.0.0.1:8000/delete_embeddings/', {
+    //                 method: 'DELETE',
+    //                 credentials: 'include',
+    //                 mode: 'cors',
+    //                 // Add any headers or body data if required
+    //             });
 
-                if (!response.ok) {
-                    console.error('Error deleting embeddings');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-            }
-        };
+    //             if (!response.ok) {
+    //                 console.error('Error deleting embeddings');
+    //             }
+    //         } catch (error) {
+    //             console.error('Error:', error);
+    //         }
+    //     };
 
-        window.addEventListener('beforeunload', handleBeforeUnload);
+    //     window.addEventListener('beforeunload', handleBeforeUnload);
 
-        // Cleanup the event listener on component unmount
-        return () => {
-            window.removeEventListener('beforeunload', handleBeforeUnload);
-        };
-    }, []);
+    //     // Cleanup the event listener on component unmount
+    //     return () => {
+    //         window.removeEventListener('beforeunload', handleBeforeUnload);
+    //     };
+    // }, []);
 
     return (
         <div className="output-container">
