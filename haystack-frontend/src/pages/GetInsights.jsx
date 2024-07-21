@@ -8,11 +8,11 @@ import Upload from "../components/Upload";
 import './GetInsights.css';
 import { clearDatabase, getAllPdfs, deletePdfById, addPdfToDatabase } from '../utils/indexedDB';
 
-function GetInsights({pdfList, setPdfList}) {
+function GetInsights() {
     const [loading, setLoading] = useState(false);
     const [activeButton, setActiveButton] = useState('left');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [selectedPdfs, setSelectedPdfs] = useState([]);
+    const [pdfList, setPdfList] = useState([]);
 
 
     useEffect(() => {
@@ -106,12 +106,20 @@ function GetInsights({pdfList, setPdfList}) {
 
     const handleCheckboxChange = (event, id) => {
         console.log('event: ', event.target.checked);
+
+        let selectedPdfs = localStorage.getItem('selectedPdfs') ? JSON.parse(localStorage.getItem('selectedPdfs')) : [];
+        console.log('selectedPdfs: ', selectedPdfs);
         if (event.target.checked) {
-            setSelectedPdfs([...selectedPdfs, id]);
+            if (selectedPdfs.indexOf(id) === -1){
+                selectedPdfs.push(id);
+            }  
         }
         else {
-            setSelectedPdfs(selectedPdfs.filter(pdfId => pdfId !== id));
+            selectedPdfs = selectedPdfs.filter(pdfId => pdfId !== id);
         }
+
+        localStorage.setItem('selectedPdfs', JSON.stringify(selectedPdfs));
+
         console.log('id: ', id);
         const updatedPdfs = pdfList.map(pdf => pdf.id === id ? { ...pdf, selected: !pdf.selected } : pdf);
         console.log('updatedPdfs: ', updatedPdfs[0].selected);
@@ -125,7 +133,10 @@ function GetInsights({pdfList, setPdfList}) {
         const updatedPdfs = pdfList.filter(pdf => pdf.id !== id);
         setPdfList(updatedPdfs);
         
-        setSelectedPdfs(selectedPdfs.filter(pdfId => pdfId !== id));
+        let selectedPdfs = localStorage.getItem('selectedPdfs') ? JSON.parse(localStorage.getItem('selectedPdfs')) : [];
+        console.log('selectedPdfs: ', selectedPdfs);
+        selectedPdfs = selectedPdfs.filter(pdfId => pdfId !== id);
+        localStorage.setItem('selectedPdfs', JSON.stringify(selectedPdfs));
     };
     
     
@@ -169,7 +180,7 @@ function GetInsights({pdfList, setPdfList}) {
                         <Options activeButton={activeButton} setActiveButton={setActiveButton} />
                     </div>
                     <div className="box output-box">
-                        <Output activeButton={activeButton} selectedPdfs={selectedPdfs} />
+                        <Output activeButton={activeButton} />
                     </div>
                 </div>
             </div>

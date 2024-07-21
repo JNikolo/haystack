@@ -11,9 +11,6 @@ import './App.css';
 
 function App() {
 
-    const [pdfList, setPdfList] = useState([]);
-
-    
 
     return (
         <Router>
@@ -23,9 +20,7 @@ function App() {
                 <Route path="/getinsights"
                     element={
                         <RequireAuth>
-                            <GetInsights 
-                                pdfList={pdfList}
-                                setPdfList={setPdfList}/>
+                            <GetInsights />
                         </RequireAuth>
                     } 
                 />

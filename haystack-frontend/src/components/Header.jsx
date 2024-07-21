@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { signOutWrapper, verifyLogin } from '../firebase/auth';
 import './Header.css'; 
+import { clearDatabase } from '../utils/indexedDB';
 
 function Header() {
 
@@ -36,6 +37,10 @@ function Header() {
     const handleLogout = async () => {
         try {
             await signOutWrapper();
+            await clearDatabase(); // Clear the IndexedDB database after signing out
+            localStorage.removeItem('selectedPdfs')
+            localStorage.removeItem('pdfsTotalSize')
+
             // Call delete_embeddings route after signing out
             const response = await fetch('http://127.0.0.1:8000/delete_embeddings/', {
                 method: 'DELETE',

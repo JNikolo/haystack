@@ -8,7 +8,7 @@ import TopicModeling from './TopicModeling';
 import { getPdfById } from '../utils/indexedDB';
 
 
-function Output({ activeButton, selectedPdfs }) {
+function Output({ activeButton }) {
     const [question, setQuestion] = useState('');
     const [response, setResponse] = useState('');
     const [activeButtonNlp, setActiveButtonNlp] = useState('left');
@@ -21,6 +21,20 @@ function Output({ activeButton, selectedPdfs }) {
     const handleQuestionSubmit = async (e) => {
         e.preventDefault();
         const newpdfList = [];
+
+        const selectedPdfs = JSON.parse(localStorage.getItem('selectedPdfs'));
+
+        if (!selectedPdfs || selectedPdfs.length === 0 ) {
+            alert('Please select PDFs');
+            //setIsLoading(false);
+            return;
+        }
+        if (question === ''){
+            alert('Please type your question!');
+            //setIsLoading(false);
+            return;
+        }
+        
         // Get the current user
         const user = auth.currentUser;
         if (!user) {
@@ -33,7 +47,7 @@ function Output({ activeButton, selectedPdfs }) {
             newpdfList.push(pdf);
         }
 
-        const user_id = user.uid; // Get the current user's UUID
+        //const user_id = user.uid; // Get the current user's UUID
         const doc_ids = newpdfList.map(pdf => pdf.name); // Assuming pdfList contains objects with an 'id' field
 
         //console.log('Query: ', question);
@@ -149,19 +163,13 @@ function Output({ activeButton, selectedPdfs }) {
                     />
                     <div className='nlpOutput'>
                         {activeButtonNlp === 'left' && (
-                            <KeywordCounting
-                                selectedPdfs={selectedPdfs}
-                            />
+                            <KeywordCounting />
                         )}
                         {activeButtonNlp === 'middle' && (
-                            <ConceptFreq
-                                selectedPdfs={selectedPdfs}
-                            />
+                            <ConceptFreq />
                         )}
                         {activeButtonNlp === 'right' && (
-                            <TopicModeling 
-                                selectedPdfs={selectedPdfs}
-                            />
+                            <TopicModeling />
                         )}
                     </div>
                 </>

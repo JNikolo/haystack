@@ -4,15 +4,26 @@ import { auth } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
 import './Upload.css';
 
-const MAX_TOTAL_SIZE = 200 * 1024 * 1024; // 20MB
+const MAX_TOTAL_SIZE = 200 * 1024 * 1024; // 200MB
 
 function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove }) {
     const [dragging, setDragging] = useState(false);
-    const [pdfsTotalSize, setPdfsTotalSize] = useState(0);
+    //const [pdfsTotalSize, setPdfsTotalSize] = useState(0);
     const [uploadStatus, setUploadStatus] = useState({}); 
     const [uploading, setUploading] = useState(false); 
-    const hashList = [];
+    const [hashList, setHashList] = useState([]);
     const { userLoggedIn } = useAuth();
+
+    useEffect(() => {
+
+        const initializeHashList = async () => {
+            const allPdfs = await getAllPdfs();
+            const hashes = allPdfs.map(pdf => pdf.hash);
+            setHashList(hashes);
+        };
+
+        initializeHashList();
+    }, []);
 
     // useEffect(() => {
     //     const clearData = async () => {
@@ -26,12 +37,26 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
     // }, []);
 
     const checkTotalSize = async (files) => {
+        let pdfsTotalSize = localStorage.getItem('pdfsTotalSize');
+        pdfsTotalSize = pdfsTotalSize ? parseInt(pdfsTotalSize, 10) : 0;
+
+        console.log('current total size: ', pdfsTotalSize);
+
+
         const totalSize = files.reduce((acc, file) => acc + file.size, 0);
-        if (totalSize + pdfsTotalSize > MAX_TOTAL_SIZE) {
-            alert('Total size of PDFs exceeds 20MB');
+
+        console.log('New pdfs total size: ', totalSize);
+
+        const newTotalSize = totalSize + pdfsTotalSize;
+        if (newTotalSize > MAX_TOTAL_SIZE) {
+            alert('Total size of PDFs exceeds 200MB');
             return false;
         }
-        setPdfsTotalSize(totalSize + pdfsTotalSize);
+        //setPdfsTotalSize(totalSize + pdfsTotalSize);
+
+        console.log('New total size: ', newTotalSize);
+
+        localStorage.setItem('pdfsTotalSize', newTotalSize);
         return true;
     };
 
@@ -56,20 +81,48 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
 
         const files = Array.from(event.dataTransfer.files);
 
-        const allPdfs = files.every(file => file.type === 'application/pdf');
-        if (!allPdfs) {
+        const isAllPdfs = files.every(file => file.type === 'application/pdf');
+
+        const preProcessedFiles = [];
+        if (!isAllPdfs) {
             alert('Only PDF files are accepted.');
             return;
         }
 
-        if (!await checkTotalSize(files)) {
+        // if (!await checkTotalSize(files)) {
+        //     return;
+        // }
+
+        for (let file of files) {
+            const hash = await generateFileHash(file);
+            console.log(`PDF ${file.name} hash is: ${hash}`);
+
+            if (hashList.includes(hash)) {
+                console.log("Skipping file...");
+                alert(`${file.name} is already uploaded. Skipping file...`);
+                continue;
+            } else {
+                console.log("New file, adding to database");
+                setHashList([...hashList, hash]);
+                preProcessedFiles.push(file);
+                await addPdfToDatabase(file);
+                setUploadStatus(prev => ({ ...prev, [file.name]: 'loading' }));
+            }
+        }
+
+        if (preProcessedFiles.length > 0){
+            if (!await checkTotalSize(preProcessedFiles)) {
+                return;
+            }
+
+            await uploadFiles(preProcessedFiles);
+        }
+        else {
+            console.log('No pdfs after preprocessing :(');
             return;
         }
-        for (let file of files) {
-            await addPdfToDatabase(file);
-        }
-        onFileChange();
-        await uploadFiles(files);
+        // onFileChange();
+        // await uploadFiles(files);
     };
 
     // const removeDuplicates = (pdfList) => {
@@ -87,15 +140,44 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
         }
 
         //const user_id = user.uid;
-        const formData = new FormData();
-        const newfiles = [];
+        // const formData = new FormData();
+        // const newfiles = [];
 
         const files = Array.from(event.target.files);
-        if (!await checkTotalSize(files)) {
-            return;
+        const preProcessedFiles = [];
+        console.log('Files to be uploaded:', files);
+
+        console.log("Hash List: ", hashList);
+
+        for (let file of files) {
+            const hash = await generateFileHash(file);
+            console.log(`PDF ${file.name} hash is: ${hash}`);
+
+            if (hashList.includes(hash)) {
+                console.log("Skipping file...");
+                alert(`${file.name} is already uploaded. Skipping file...`);
+                continue;
+            } else {
+                console.log("New file, adding to database");
+                setHashList([...hashList, hash]);
+                preProcessedFiles.push(file);
+                await addPdfToDatabase(file);
+                setUploadStatus(prev => ({ ...prev, [file.name]: 'loading' }));
+            }
         }
 
-        await uploadFiles(files);
+
+        if (preProcessedFiles.length > 0){
+            if (!await checkTotalSize(preProcessedFiles)) {
+                return;
+            }
+
+            await uploadFiles(preProcessedFiles);
+        }
+        else {
+            console.log('No pdfs after preprocessing :(');
+            return;
+        }
     };
 
     const uploadFiles = async (files) => {
@@ -107,26 +189,14 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
 
         //const user_id = user.uid;
         const formData = new FormData();
-        const newFiles = [];
-        const allPdfs = await getAllPdfs();
+        //const newFiles = [];
+        //const allPdfs = await getAllPdfs();
 
         setUploading(true);
 
-        for (let file of files) {
-            const hash = await generateFileHash(file);
+        
 
-            if (hashList.includes(hash) || allPdfs.some(pdf => pdf.hash === hash)) {
-                alert(`${file.name} is a duplicate. Skipping...`);
-                continue;
-            } else {
-                hashList.push(hash);
-                newFiles.push(file);
-                await addPdfToDatabase(file);
-                setUploadStatus(prev => ({ ...prev, [file.name]: 'loading' }));
-            }
-        }
-
-        newFiles.forEach((file) => {
+        files.forEach((file) => {
             formData.append('pdf_list', file);
             formData.append('doc_ids', file.name);
         });
@@ -137,7 +207,7 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
             console.log(`${key}: ${value}`);
         }
 
-        setUploading(true);
+        //setUploading(true);
 
         try {
             const response = await fetch('http://127.0.0.1:8000/add_embeddings/', { // Replace with your backend URL
@@ -150,26 +220,26 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
             if (response.ok) {
                 const data = await response.json();
                 console.log('Success:', data.message);
-                newFiles.forEach(file => {
+                files.forEach(file => {
                     setUploadStatus(prev => ({ ...prev, [file.name]: 'completed' }));
                 });
             } else {
                 const errorData = await response.json();
                 console.error('Error:', errorData.message);
-                newFiles.forEach(file => {
+                files.forEach(file => {
                     setUploadStatus(prev => ({ ...prev, [file.name]: 'failed' }));
                 });
             }
         } catch (error) {
             console.error('Error:', error.message);
-            newFiles.forEach(file => {
+            files.forEach(file => {
                 setUploadStatus(prev => ({ ...prev, [file.name]: 'failed' }));
             });
         } finally {
             // Check file size and add to database
-            if (!await checkTotalSize(files)) {
-                return;
-            }
+            // if (!await checkTotalSize(files)) {
+            //     return;
+            // }
             setUploading(false);
             onFileChange();
         }
@@ -178,8 +248,23 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
     const handleRemovePdf = (id) => {
         const pdf = pdfList.find((pdf) => pdf.id === id);
         if (pdf) {
-            deletePdfById(id);
+            //deletePdfById(id);
             onPdfRemove(id);
+
+
+            //remove pdf size from total size
+            let pdfsTotalSize = parseInt(localStorage.getItem('pdfsTotalSize'), 10);
+            console.log('pdfsTotalSize: ', pdfsTotalSize);
+            console.log(pdf);
+            console.log('pdf size: ', pdf.file.size);
+
+            pdfsTotalSize -= pdf.file.size;
+
+            localStorage.setItem('pdfsTotalSize', pdfsTotalSize.toString());
+
+            // Update hashList after removing PDF
+            setHashList(prevHashList => prevHashList.filter(hash => hash !== pdf.hash));
+
             setUploadStatus(prev => {
                 const updatedStatus = { ...prev };
                 delete updatedStatus[pdf.name];

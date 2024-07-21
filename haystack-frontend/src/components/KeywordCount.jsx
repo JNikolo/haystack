@@ -3,7 +3,7 @@ import './KeywordCount.css';
 import { getPdfById } from '../utils/indexedDB';
 import Loading from './Loading';
 
-function KeywordCounting({ selectedPdfs }) {
+function KeywordCounting({}) {
     const [keyword, setKeyword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [apiResponse, setApiResponse] = useState(null);
@@ -12,6 +12,20 @@ function KeywordCounting({ selectedPdfs }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
+        const selectedPdfs = JSON.parse(localStorage.getItem('selectedPdfs'));
+
+        if (!selectedPdfs || selectedPdfs.length === 0) {
+            alert('Please select PDFs');
+            setIsLoading(false);
+            return;
+        }
+
+        if (keyword === ''){
+            alert('Please type your keyword');
+            setIsLoading(false);
+            return;
+        }
+        
 
         // Filter selected PDFs
         //const selectedPdfs = pdfList.filter(pdf => pdf.selected);
@@ -93,13 +107,13 @@ function KeywordCounting({ selectedPdfs }) {
                     placeholder="Type your keyword here"
                     className="keyword-input"
                     rows={1}
-                    disabled={isLoading || !(selectedPdfs.length > 0)} // Disable textarea when loading or no PDFs selected
+                    disabled={isLoading} // Disable textarea when loading or no PDFs selected
                 />
             </form>
             {isLoading ? (
                 <Loading />
             ) : (
-                <button type="submit" className="keyword-submit" onClick={handleSubmit} disabled={!(selectedPdfs.length > 0)}>
+                <button type="submit" className="keyword-submit" onClick={handleSubmit}>
                     Submit
                 </button>
             )}

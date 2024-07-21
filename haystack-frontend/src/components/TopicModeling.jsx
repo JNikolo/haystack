@@ -109,6 +109,13 @@ function TopicModeling({selectedPdfs}) {
 
     const handleGeneratePlots = async () => {
         setIsLoading(true);
+        const selectedPdfs = JSON.parse(localStorage.getItem('selectedPdfs'));
+
+        if (!selectedPdfs || selectedPdfs.length === 0) {
+            alert('Please select PDFs');
+            setIsLoading(false);
+            return;
+        }
 
         // Filter selected PDFs
         //const selectedPdfs = pdfList.filter(pdf => pdf.selected);
@@ -154,7 +161,7 @@ function TopicModeling({selectedPdfs}) {
     return (
         <div className='topic-modeling'>
             <h2>Analyze the PDFs with topic modeling</h2>
-            <button onClick={handleGeneratePlots} disabled={isLoading || !(selectedPdfs.length > 0)}>
+            <button onClick={handleGeneratePlots} disabled={isLoading }>
                 Generate Plot
             </button>
             {isLoading && <Loading />}

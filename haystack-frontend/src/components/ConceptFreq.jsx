@@ -16,7 +16,7 @@ const labelDefinitions = {
 };
 
 
-function ConceptFreq({ selectedPdfs}) {
+function ConceptFreq({}) {
     const [isLoading, setIsLoading] = useState(false);
     const [plotData, setPlotData] = useState(null);
     const [error, setError] = useState(null);
@@ -25,6 +25,13 @@ function ConceptFreq({ selectedPdfs}) {
 
     const handleGeneratePlots = async () => {
         setIsLoading(true);
+        const selectedPdfs = JSON.parse(localStorage.getItem('selectedPdfs'));
+
+        if (!selectedPdfs || selectedPdfs.length === 0) {
+            alert('Please select PDFs');
+            setIsLoading(false);
+            return;
+        }
 
         // Filter selected PDFs
         //const selectedPdfs = pdfList.filter(pdf => pdf.selected);
@@ -133,7 +140,7 @@ function ConceptFreq({ selectedPdfs}) {
     return (
         <div className="concept-freq">
             <h2>Concept Frequency</h2>
-            <button onClick={handleGeneratePlots} disabled={isLoading || !(selectedPdfs.length > 0)}>
+            <button onClick={handleGeneratePlots} disabled={isLoading }>
                 Generate Plot
             </button>
             {isLoading && <Loading />}
