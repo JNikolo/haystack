@@ -3,6 +3,7 @@ import { getPdfById } from '../utils/indexedDB';
 import { Bar } from 'react-chartjs-2';
 import 'chart.js/auto';
 import Loading from './Loading';
+import './TopicModeling.css';
 
 
 function CountChart({ data, topicId }) {

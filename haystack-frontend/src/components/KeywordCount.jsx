@@ -8,9 +8,11 @@ function KeywordCounting({}) {
     const [isLoading, setIsLoading] = useState(false);
     const [apiResponse, setApiResponse] = useState(null);
     const [error, setError] = useState(null);
+    const [submittedKeyword, setSubmittedKeyword] = useState('');
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setSubmittedKeyword(keyword);
         setIsLoading(true);
         const selectedPdfs = JSON.parse(localStorage.getItem('selectedPdfs'));
 
@@ -120,18 +122,16 @@ function KeywordCounting({}) {
             {error && <p className="error-message">{error}</p>}
             {apiResponse && (
                 <div className="keyword-output">
-                    <p>{`The keyword "${keyword}" appeared ${apiResponse.total} times.`}</p>
-                    <button className="download-button" onClick={downloadResults}>
+                    <p>{`The keyword "${submittedKeyword}" appeared ${apiResponse.total} times.`}</p>
+                    <button className="keyword-submit" onClick={downloadResults}>
                         Download Results (JSON)
+                    </button>
+                    <button className="keyword-submit" onClick={handleNewSearch}>
+                        New Search
                     </button>
                 </div>
             )}
             {/* Render a button to clear results */}
-            {apiResponse && (
-                <button className="new-search-button" onClick={handleNewSearch}>
-                    New Search
-                </button>
-            )}
         </div>
     );
 }

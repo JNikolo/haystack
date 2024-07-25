@@ -110,6 +110,7 @@ function ConceptFreq({}) {
                 beginAtZero: true,
                 ticks: {
                     precision: 0,
+                    stepSize: 10, // Set the step size to 20 units
                 },
             },
         },
@@ -140,21 +141,18 @@ function ConceptFreq({}) {
     return (
         <div className="concept-freq">
             <h2>Concept Frequency</h2>
-            <button onClick={handleGeneratePlots} disabled={isLoading }>
+            <button className='frequency-button' onClick={handleGeneratePlots} disabled={isLoading }>
                 Generate Plot
             </button>
             {isLoading && <Loading />}
             {error && <p className="error-message">{error}</p>}
             {plotData && (
-                <>
-                    <button onClick={handleClearPlot}>Clear</button>
                     <div className="plot-container">
-                        <Bar data={chartData} options={chartOptions} />
+                        <Bar data={chartData} options={chartOptions} width={800}/>
                     </div>
-                </>
-                
             )}
-            <button onClick={handleOpenModal} className="definitions-button">Show NER Label Definitions</button>
+            <button className='frequency-button' onClick={handleOpenModal}>Show NER Label Definitions</button> 
+            <button className='frequency-button' onClick={handleClearPlot}>Clear</button>
             {isModalOpen && (
                 <div className="modal">
                     <div className="modal-content">

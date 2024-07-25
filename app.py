@@ -233,7 +233,7 @@ async def concepts_frequencies_in_pdfs(pdf_files: List[UploadFile]):
                 entity_info[cleaned_text]['frequency'] += 1
                 entity_info[cleaned_text]['labels'].add(ent.label_)
 
-    sorted_entities = sorted(entity_info.items(), key=lambda x: x[1]['frequency'], reverse=True)[:10]
+    sorted_entities = sorted(entity_info.items(), key=lambda x: x[1]['frequency'], reverse=True)[:15]
     result = []
     for entity, info in sorted_entities:
         result.append({'text': entity, 'frequency': info['frequency'], 'labels': list(info['labels'])})
@@ -621,7 +621,7 @@ def qa_rag(request: QARAGRequest, user_data: Annotated[dict, Depends(verify_user
     for id in request.doc_ids:
         reply = Haystack_qa_1(request.query, user_id, id)
         replies.append(reply)
-    return {"status":"success", 'result' : replies}
+    return {"status":"success", 'result' : replies, 'doc_ids': request.doc_ids}
 
 #VECTOR_STORE.delete(delete_all=True, namespace='user_1')
 #VECTOR_STORE.delete(delete_all=True, namespace='user_2')

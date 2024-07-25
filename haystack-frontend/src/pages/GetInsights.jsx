@@ -10,7 +10,7 @@ import { clearDatabase, getAllPdfs, deletePdfById, addPdfToDatabase } from '../u
 
 function GetInsights() {
     const [loading, setLoading] = useState(false);
-    const [activeButton, setActiveButton] = useState('left');
+    const [activeButton, setActiveButton] = useState('keyword_count');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [pdfList, setPdfList] = useState([]);
 
@@ -149,13 +149,29 @@ function GetInsights() {
                         {isSidebarOpen ? '<' : '>'}
                     </button>
                     {isSidebarOpen && (
-                        <Upload
-                            loading={loading}
-                            pdfList={pdfList}
-                            onFileChange={handleFileChange}
-                            onCheckboxChange={handleCheckboxChange}
-                            onPdfRemove={handleRemovePdf}
-                        />
+                        <div>
+                            <div className="sidebar-menu">
+                                <h1>Menu</h1>
+                                <div className='sidebar-menu-buttons'>
+                                    {/* <button className='menu-button' onClick={() => setActiveButton('home')}>Home</button> */}
+                                    <button className='menu-button' onClick={() => setActiveButton('keyword_count')}>Keyword Count</button>
+                                    <button className='menu-button' onClick={() => setActiveButton('ner')}>Named Entity Recognition</button>
+                                    <button className='menu-button' onClick={() => setActiveButton('topic_modeling')}>Topic Modeling</button>
+                                    <button className='menu-button' onClick={() => setActiveButton('q_a')}>Q&A</button>
+                                </div>
+                            </div>
+                                
+
+                            <div className="sidebar-upload">
+                                <Upload
+                                    loading={loading}
+                                    pdfList={pdfList}
+                                    onFileChange={handleFileChange}
+                                    onCheckboxChange={handleCheckboxChange}
+                                    onPdfRemove={handleRemovePdf}
+                                />
+                            </div>
+                        </div>
                     )}
                 </div>
                 {/* <Sidebar 
@@ -176,9 +192,9 @@ function GetInsights() {
                 </div> */}
                 {/* <div className="right-side"> */}
                 <div className={`main-content ${isSidebarOpen ? 'expanded' : ''}`}>
-                    <div className="box options-box">
+                    {/* <div className="box options-box">
                         <Options activeButton={activeButton} setActiveButton={setActiveButton} />
-                    </div>
+                    </div> */}
                     <div className="box output-box">
                         <Output activeButton={activeButton} />
                     </div>

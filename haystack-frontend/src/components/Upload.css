@@ -10,14 +10,14 @@ label.file-input-label {
     border: none;
     border-radius: 5px;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 15px;
     margin-bottom: 20px;
     left: 50%;
-    margin-top: 35px;
-    position: absolute;
+    margin-top: 15px;
+    position: relative;
     -ms-transform: translateX(-50%);
     transform: translateX(-50%);
-    top: 190px;
+    /* top: 120px; */
 }
 
 label.file-input-label:hover {
@@ -89,8 +89,8 @@ li input[type="checkbox"]:checked + label::after {
 }
 
 #title {
-    font-size: 1.7vw; 
-    text-align: center;
+    font-size: 1.5vw; 
+    text-align: left;
     margin-bottom: 20px;
     white-space: nowrap; 
 }
@@ -118,7 +118,7 @@ li input[type="checkbox"]:checked + label::after {
     background-color: rgb(51 65 85);
     color: white;
     padding: 10px;
-    max-height: 200px; /* Set the maximum height for the div */
+    max-height: 20vh; /* Set the maximum height for the div */
     overflow-y: auto; /* Enable vertical scrolling */
     overflow-x: hidden; /* Hide horizontal scrolling if not needed */
 }
@@ -132,8 +132,8 @@ li input[type="checkbox"]:checked + label::after {
 .file-drop-area {
     border: 2px dashed #ccc;
     padding: 10px;
-    margin: 10px;
-    height: 160px;
+    margin: 5px;
+    height: 140px;
     font-size: small;
     
 }
@@ -143,7 +143,7 @@ li input[type="checkbox"]:checked + label::after {
 }
 
 .upload-pdfs p {
-    font-size: 20px;
+    font-size: 15px;
     text-align: center;
 }
 
@@ -175,4 +175,8 @@ li input[type="checkbox"]:checked + label::after {
 .check-mark {
     font-size: 20px;
     color: green;
+}
+
+.uploaded-pdf-text{
+    margin-top: -10px;
 }

@@ -133,6 +133,7 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
 
     const handleFileInputChange = async (event) => {
         //const user = auth.currentUser;
+        console.log('Trying to upload a pdf starting');
         if (!userLoggedIn) {
             alert('You are not authenticated. Please sign in to upload PDFs.');
             console.error('User not authenticated');
@@ -142,6 +143,8 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
         //const user_id = user.uid;
         // const formData = new FormData();
         // const newfiles = [];
+
+        console.log('These files are going to be uploaded');
 
         const files = Array.from(event.target.files);
         const preProcessedFiles = [];
@@ -178,6 +181,9 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
             console.log('No pdfs after preprocessing :(');
             return;
         }
+
+        // Clear the input value to ensure handleFileInputChange is called on re-upload
+        event.target.value = ''; // Clear file input after upload
     };
 
     const uploadFiles = async (files) => {
@@ -187,6 +193,24 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
         //     return;
         // }
 
+        //somehow fixed the bug where the pdf was not being uploaded
+
+        // if (files.length === 1 && pdfList.length === 1){
+        //     console.log('Entering if statement for bug fix');
+        //     const file = files[0];
+        //     const hash = await generateFileHash(file);
+        //     console.log(`PDF ${file.name} hash is: ${hash}`);
+        //     if (hashList.includes(hash)) {
+        //         console.log("Skipping file...");
+        //         alert(`${file.name} is already uploaded. Skipping file...`);
+        //     } else {
+        //         console.log("New file, adding to database");
+        //         setHashList([...hashList, hash]);
+        //         preProcessedFiles.push(file);
+        //         await addPdfToDatabase(file);
+        //         setUploadStatus(prev => ({ ...prev, [file.name]: 'loading' }));
+        //     }
+        // }
         //const user_id = user.uid;
         const formData = new FormData();
         //const newFiles = [];
@@ -301,10 +325,10 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
             </div>
 
             <div className="uploaded-files">
-                {pdfList.length === 0 && <p>No PDFs uploaded yet</p>}
+                {pdfList.length === 0 && <h1>No PDFs uploaded yet</h1>}
                 {pdfList.length > 0 && !uploading && (
                     <>
-                        <p>Uploaded PDFs:</p>
+                        <h1 className='uploaded-pdf-text'>Uploaded PDFs:</h1>
                         <div className="pdf-list">
                             <ul>
                                 {pdfList.map((pdf) => (

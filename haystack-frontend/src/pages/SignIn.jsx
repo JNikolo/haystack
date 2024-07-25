@@ -32,7 +32,7 @@ function SignIn() {
         
         e.preventDefault();
         signInWrapper(email, password).then(() => {
-            navigate("/getinsights"); // Redirect to GetInsights page
+            navigate("/"); // Redirect to GetInsights page
         });
         // signInWithEmailAndPassword(auth, email, password)
         //     .then((userCredential) => {
@@ -66,7 +66,7 @@ function SignIn() {
     // }
 
     if (userLoggedIn){
-        return (<Navigate to="/getinsights" />);
+        return (<Navigate to="/" />);
     }
 
     return (

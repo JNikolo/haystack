@@ -30,9 +30,11 @@ body {
     display: flex;
     flex-direction: column;
     padding: 20px;
-    /* transition: margin-left 0.3s; */
-    width: 85vw; /* Maximum width for the main content */
-    height: 83vh;
+    position: relative;
+    width: 83vh; /* Maximum width for the main content */
+    min-height: 83vh;
+    align-items: center; /* Center child elements horizontally */
+    justify-content: flex-start; /* Align child elements to the top */
 }
 
 /* .main-content.expanded {
@@ -58,7 +60,7 @@ body {
 }
 
 .sidebar {
-    position: absolute;
+    position: fixed;
     top: auto; /* Adjust based on your header height */
     left: 0;
     width: 50px; /* default width for collapsed state */
@@ -66,10 +68,10 @@ body {
     transition: width 0.5s;
     z-index: 1000;
     background-color: #0f172a;
-    height: auto;
-    min-height: 85vh;
+    height: 85vh;
     color: white;
     margin-top: 10px;
+    overflow-y: auto; /* Allow vertical scrolling */
 }
 
 .sidebar.expanded {
@@ -108,6 +110,43 @@ body {
 .sidebar.collapsed .toggle-btn {
     right: 10px; /* Move the button outside the collapsed sidebar */
 }
+
+.sidebar.expanded h1{
+    font-size: 1.5vw;
+}
+
+.sidebar.expanded h3{
+    font-size: 1vw;
+}
+.sidebar-menu-buttons{
+    display: flex;
+    flex-direction: column;
+    align-items: left;
+    justify-content: center;
+}
+
+.menu-button{
+    border-radius: 5px;
+    padding: 10px 0px;
+    font-size: 15px;
+    margin: 10px;
+    border: none;
+}
+
+.menu-button:hover{
+    background-color: rgb(51 65 85);
+    color: white;
+}
+
+/* .sidebar-menu-buttons button{
+    background-color: #0f172a;
+    color: white;
+    border: none;
+    padding: 10px;
+    margin: 10px;
+    cursor: pointer;
+    border-radius: 5px;
+} */
 
 
 

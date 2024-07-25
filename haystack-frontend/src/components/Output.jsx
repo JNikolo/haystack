@@ -6,13 +6,15 @@ import ConceptFreq from './ConceptFreq';
 import './Output.css';
 import TopicModeling from './TopicModeling';
 import { getPdfById } from '../utils/indexedDB';
+import Loading from './Loading';
 
 
 function Output({ activeButton }) {
     const [question, setQuestion] = useState('');
     const [response, setResponse] = useState('');
-    const [activeButtonNlp, setActiveButtonNlp] = useState('left');
-    const [buttonClicked, setButtonClicked] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
+    // const [activeButtonNlp, setActiveButtonNlp] = useState('left');
+    // const [buttonClicked, setButtonClicked] = useState(true);
 
     const handleQuestionChange = (e) => {
         setQuestion(e.target.value);
@@ -20,6 +22,7 @@ function Output({ activeButton }) {
 
     const handleQuestionSubmit = async (e) => {
         e.preventDefault();
+        setIsLoading(true);
         const newpdfList = [];
 
         const selectedPdfs = JSON.parse(localStorage.getItem('selectedPdfs'));
@@ -82,13 +85,15 @@ function Output({ activeButton }) {
             }
         } catch (error) {
             setResponse({ error: error.message });
+        } finally {
+            setIsLoading(false);
         }
     };
 
-    const handleButtonClick = async (nlpType) => {
-        await setActiveButtonNlp(nlpType);
-        setButtonClicked(true);
-    };    
+    // const handleButtonClick = async (nlpType) => {
+    //     await setActiveButtonNlp(nlpType);
+    //     setButtonClicked(true);
+    // };    
 
     const renderResponse = () => {
         if (!response) {
@@ -97,13 +102,22 @@ function Output({ activeButton }) {
         if (response.error) {
             return <p>Error: {response.error}</p>;
         }
-        if (Array.isArray(response)) {
-            return response.map((reply, index) => (
-                <div key={index}>
-                    <h3>Response {index + 1}:</h3>
-                    <pre>{JSON.stringify(reply, null, 2)}</pre>
-                </div>
-            ));
+        if (response) {
+            console.log('doc_ids: ', response.doc_ids);
+            console.log('answers: ', response.result);
+            
+            let answers = response.result;
+            let doc_ids = response.doc_ids;
+            if (Array.isArray(answers) && Array.isArray(doc_ids) && answers.length === doc_ids.length) {
+                return answers.map((answer, index) => (
+                    <div className='qa_output'>
+                        <div key={index}>
+                            <h3><strong>{`${doc_ids[index]}`}</strong></h3>
+                            <p>{`Answer: ${answer}`}</p><br/>
+                        </div>
+                    </div>
+                ));
+            }
         }
         return (
             <div>
@@ -154,7 +168,56 @@ function Output({ activeButton }) {
 
     return (
         <div className="output-container">
-            {activeButton === 'left' && (
+            {/* {activeButton === 'home' && (
+                <>
+                    <Home />
+                </>
+            )} */}
+            {activeButton === 'keyword_count' && (
+                <>
+                    <KeywordCounting />
+                </>
+            )}
+            {activeButton === 'ner' && (
+                <>
+                    <ConceptFreq />
+                </>
+            )}
+            {activeButton === 'topic_modeling' && (
+                <>
+                    <TopicModeling />
+                </>
+            )}
+            {activeButton === 'q_a' && (
+                <>
+                    <div className="question-section">
+                        <h2>Ask a Question</h2>
+                        <form onSubmit={handleQuestionSubmit} className="question-form">
+                            <textarea
+                                value={question}
+                                onChange={handleQuestionChange}
+                                placeholder="Type your question here"
+                                className="question-input"
+                                rows={1} 
+                            />
+                            <button type="submit" className="question-submit">Ask</button>
+                        </form>
+                        <div className="response">
+                            
+                            {isLoading && (
+                                <div className="response-loading">
+                                    <Loading />
+                                </div> 
+                            )}
+                            {!isLoading && renderResponse()}
+                        </div>
+                    </div>
+                </>
+            )}
+            
+
+
+            {/* {activeButton === 'left' && (
                 <>
                     <NlpButtons
                         activeButtonNlp={activeButtonNlp}
@@ -191,7 +254,7 @@ function Output({ activeButton }) {
                         {renderResponse()}
                     </div>
                 </div>
-            )}
+            )} */}
         </div>
     );
 }

@@ -72,14 +72,14 @@ function Header() {
                         <img src='../H-logo.png' width={40} height={40} />
                     </Link>
                     <p className='navButtons'>
-                        <Link className='button-container' to='/'>
+                        {/* <Link className='button-container' to='/'>
                             FAQ
-                        </Link>
-                        {userLoggedIn && ( //isLogged && (
+                        </Link> */}
+                        {/* {userLoggedIn && ( //isLogged && (
                             <Link className='button-container' to='/getinsights'>
                                 Insights
                             </Link>
-                        )}
+                        )} */}
                     </p>
                 </div>
                 {
