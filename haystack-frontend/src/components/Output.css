@@ -1,11 +1,14 @@
 .output-container {
     width: 100%;
     height:auto;
+    overflow: auto;
 }
 
 .question-section {
     text-align: center;
-    position: relative;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
 }
 
 .question-form {
