@@ -29,12 +29,12 @@ function Output({ activeButton }) {
 
         if (!selectedPdfs || selectedPdfs.length === 0 ) {
             alert('Please select PDFs');
-            //setIsLoading(false);
+            setIsLoading(false);
             return;
         }
         if (question === ''){
             alert('Please type your question!');
-            //setIsLoading(false);
+            setIsLoading(false);
             return;
         }
         

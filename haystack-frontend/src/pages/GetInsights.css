@@ -72,6 +72,7 @@ body {
     color: white;
     margin-top: 10px;
     overflow-y: auto; /* Allow vertical scrolling */
+    font-size: small;
 }
 
 .sidebar.expanded {
@@ -112,11 +113,11 @@ body {
 }
 
 .sidebar.expanded h1{
-    font-size: 1.5vw;
+    font-size: small;
 }
 
 .sidebar.expanded h3{
-    font-size: 1vw;
+    font-size: small;
 }
 .sidebar-menu-buttons{
     display: flex;
@@ -127,9 +128,9 @@ body {
 
 .menu-button{
     border-radius: 5px;
-    padding: 10px 0px;
-    font-size: 15px;
-    margin: 10px;
+    padding: 5px 0px;
+    font-size: small;
+    margin: 5px 2px;
     border: none;
 }
 

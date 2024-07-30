@@ -44,7 +44,7 @@ function CountChart({ data, topicId }) {
         },
     };
 
-    return <Bar data={chartData} options={chartOptions} />;
+    return <Bar data={chartData} options={chartOptions} width={800} />;
 
 };
 
@@ -79,11 +79,11 @@ function ImportanceChart({ importance_data, topicId }) {
         },
     };
 
-    return <Bar data={chartData} options={chartOptions} />;
+    return <Bar data={chartData} options={chartOptions} width={800} />;
 };
 
 function TopicModelingPlots({ data }) {
-    const topicIds = [0, 1, 2, 3, 4];
+    const topicIds = [1, 2, 3, 4, 5];
 
     return (
         <div className='topic-modeling-plots'>
@@ -162,16 +162,16 @@ function TopicModeling({selectedPdfs}) {
     return (
         <div className='topic-modeling'>
             <h2>Analyze the PDFs with topic modeling</h2>
-            <button onClick={handleGeneratePlots} disabled={isLoading }>
+            <button className='topic-button' onClick={handleGeneratePlots} disabled={isLoading }>
                 Generate Plot
             </button>
+            <button className='topic-button' onClick={handleClearPlot}>Clear</button>
             {isLoading && <Loading />}
             {error && <p className="error-message">{error}</p>}
             {apiData && apiData.count && apiData.importance ? (
-                <>
+                <div className='topic-modeling-plots'>
                     <TopicModelingPlots data={apiData} />
-                    <button onClick={handleClearPlot}>Clear</button>
-                </>
+                </div>
             ) : null}
         </div>
     );

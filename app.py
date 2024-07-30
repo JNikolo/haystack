@@ -326,8 +326,8 @@ async def topic_modeling_from_pdfs(pdf_files: List[UploadFile]):
 
     for i, topic in enumerate(topics):
         for word, weight in topic[1]:
-            out_count.append([word, i, counter[word]])
-            out_importance.append([word, i, weight])
+            out_count.append([word, i + 1, counter[word]])
+            out_importance.append([word, i + 1, weight])
     
     df_count = pd.DataFrame(out_count, columns=['word', 'topic_id', 'word_count'])
     df_importance = pd.DataFrame(out_importance, columns=['word', 'topic_id', 'importance'])

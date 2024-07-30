@@ -356,7 +356,7 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
             </div>
 
             {uploading && (
-                <div className="upload-progress">
+                <div className="pdf-list">
                     {Object.keys(uploadStatus).map((fileName) => (
                         <div key={fileName} className="upload-progress-item">
                             <p>{fileName}</p>

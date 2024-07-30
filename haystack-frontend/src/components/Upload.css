@@ -4,16 +4,16 @@ input[type="file"] {
 
 label.file-input-label {
     display: inline-block;
-    padding: 10px 20px;
+    padding: 5px 10px;
     background-color: white;
     color: black;
     border: none;
     border-radius: 5px;
     cursor: pointer;
-    font-size: 15px;
+    font-size: small;
     margin-bottom: 20px;
     left: 50%;
-    margin-top: 15px;
+    margin-top: 10px;
     position: relative;
     -ms-transform: translateX(-50%);
     transform: translateX(-50%);
@@ -59,7 +59,7 @@ li input[type="checkbox"] {
 li label {
     position: relative;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 12px;
 }
 
 li label::before {
@@ -84,12 +84,12 @@ li input[type="checkbox"]:checked + label::after {
     position: absolute;
     left: 4px;
     top: 0;
-    font-size: 18px;
+    font-size: 12px;
     color: white;
 }
 
 #title {
-    font-size: 1.5vw; 
+    font-size: small;
     text-align: left;
     margin-bottom: 20px;
     white-space: nowrap; 
@@ -121,19 +121,20 @@ li input[type="checkbox"]:checked + label::after {
     max-height: 20vh; /* Set the maximum height for the div */
     overflow-y: auto; /* Enable vertical scrolling */
     overflow-x: hidden; /* Hide horizontal scrolling if not needed */
+    font-size: 8px;
 }
 
 .uploaded-files {
     top: 60vh;
     margin-top: 30px;
-    padding: 0px 10px;
+    /* padding: 0px 10px; */
 }
 
 .file-drop-area {
     border: 2px dashed #ccc;
     padding: 10px;
     margin: 5px;
-    height: 140px;
+    height: 90px;
     font-size: small;
     
 }
@@ -143,12 +144,14 @@ li input[type="checkbox"]:checked + label::after {
 }
 
 .upload-pdfs p {
-    font-size: 15px;
+    font-size: 10px;
     text-align: center;
 }
 
 .upload-progress {
-    margin-top: 20px;
+    top: 60vh;
+    margin-top: 30px;
+    padding: 0px 10px;
 }
 
 .upload-progress-item {
