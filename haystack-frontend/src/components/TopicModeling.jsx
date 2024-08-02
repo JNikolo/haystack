@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import { getPdfById } from '../utils/indexedDB';
 import { Bar } from 'react-chartjs-2';
 import 'chart.js/auto';
@@ -107,6 +107,16 @@ function TopicModeling({selectedPdfs}) {
     const [apiData, setApiData] = useState(null);
     const [error, setError] = useState(null);
 
+    useEffect(() => {
+        const topicData = JSON.parse(localStorage.getItem('topicData'));
+        if (topicData) {
+            setApiData(topicData);
+        }
+        else{
+            setApiData(null);
+        }
+    }, []);
+
 
     const handleGeneratePlots = async () => {
         setIsLoading(true);
@@ -128,7 +138,17 @@ function TopicModeling({selectedPdfs}) {
 
         for (let pdfID of selectedPdfs) {
             const pdf = await getPdfById(pdfID);
-            formData.append('files', pdf.file);
+            if (pdf) {
+                formData.append('files', pdf.file);
+            }
+            else{
+                console.log('PDF not found in indexedDB');
+                const filteredPdfs = selectedPdfs.filter(pdf => pdf !== pdfID);
+                localStorage.setItem('selectedPdfs', JSON.stringify(filteredPdfs));
+                setIsLoading(false);
+                setError('A PDF was not found! Try again.');
+                return;
+            }
         }
 
         try {
@@ -146,6 +166,7 @@ function TopicModeling({selectedPdfs}) {
 
             const data = await response.json();
             setApiData(data.result);
+            localStorage.setItem('topicData', JSON.stringify(data.result));
             setError(null); // Reset error state
         } catch (error) {
             setError(error.message || 'Failed to generate plots');
@@ -157,11 +178,12 @@ function TopicModeling({selectedPdfs}) {
     const handleClearPlot = () => {
         setApiData(null); // Reset apiData on clear
         setError(null);
+        localStorage.removeItem('topicData');
     };
 
     return (
         <div className='topic-modeling'>
-            <h2>Analyze the PDFs with topic modeling</h2>
+            <h2>Analyze Your PDFs with Topic Modeling!</h2>
             <button className='topic-button' onClick={handleGeneratePlots} disabled={isLoading }>
                 Generate Plot
             </button>

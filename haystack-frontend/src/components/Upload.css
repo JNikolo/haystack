@@ -4,16 +4,16 @@ input[type="file"] {
 
 label.file-input-label {
     display: inline-block;
-    padding: 5px 10px;
+    padding: 5px 12px;
     background-color: white;
     color: black;
     border: none;
     border-radius: 5px;
     cursor: pointer;
     font-size: small;
-    margin-bottom: 20px;
+    /* margin-bottom: 20px; */
     left: 50%;
-    margin-top: 10px;
+    margin: 10px 0px;
     position: relative;
     -ms-transform: translateX(-50%);
     transform: translateX(-50%);
@@ -50,6 +50,7 @@ ul {
 
 li {
     margin: 10px 0;
+    height: 25px;
 }
 
 li input[type="checkbox"] {
@@ -65,8 +66,8 @@ li label {
 li label::before {
     content: '';
     display: inline-block;
-    width: 20px;
-    height: 20px;
+    width: 15px;
+    height: 15px;
     border: 2px solid #007bff;
     border-radius: 5px;
     margin-right: 10px;
@@ -97,22 +98,24 @@ li input[type="checkbox"]:checked + label::after {
 
 .remove-button {
     margin-left: 10px;
-    display: none;
-    background-color: red;
+    background-color: rgb(51 65 85);
     color: white;
     border: none;
     border-radius: 5px;
-    padding: 5px 10px;
+    padding: 5px; /* Adjusted padding for better spacing */
     cursor: pointer;
+    opacity: 0; /* Changed from display: none; to opacity: 0; */
+    transition: opacity 0.3s; /* Added transition for smooth fade */
 }
 
 .remove-button:hover {
-    background-color: darkred;
+    background-color: #0f172a;
 }
 
 .pdf-item:hover .remove-button {
-    display: inline-block;
+    opacity: 1; /* Changed from display: inline-block; to opacity: 1; */
 }
+
 
 .pdf-list {
     background-color: rgb(51 65 85);
@@ -134,8 +137,46 @@ li input[type="checkbox"]:checked + label::after {
     border: 2px dashed #ccc;
     padding: 10px;
     margin: 5px;
-    height: 90px;
+    height: 50px;
     font-size: small;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.0s ease-in-out; 
+}
+
+.upload-text-container{
+    margin-left: 10px;
+    font-size: 10px;
+    align-items: left;
+    display: flex;
+    flex-direction: row;
+    transition: all 0.0s ease-in-out; 
+}
+
+.upload-text{
+    display: flex;
+    flex-direction: column;
+    justify-content: left;
+    margin-left: 10px;
+    transition: all 0.0s ease-in-out;
+}
+
+.upload-text p{
+    margin: 0px;
+    align-self: start;
+}
+
+.upload-text h4{
+    margin: 0px;
+    font-size: 12px;
+}
+
+
+.upload-icon{
+    margin-right: 10px;
+    /* transition: all 0.3s ease-in-out; Added transition for smoother toggle */
     
 }
 
@@ -182,4 +223,11 @@ li input[type="checkbox"]:checked + label::after {
 
 .uploaded-pdf-text{
     margin-top: -10px;
+}
+
+.filename {
+    font-size: 10px;
+    /* margin-right: 20px; */
+    width: 320px;
+    align-items: left;
 }

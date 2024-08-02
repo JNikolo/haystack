@@ -7,6 +7,11 @@ import Options from "../components/Options";
 import Upload from "../components/Upload";
 import './GetInsights.css';
 import { clearDatabase, getAllPdfs, deletePdfById, addPdfToDatabase } from '../utils/indexedDB';
+import { FaSearchLocation, FaUserTag } from "react-icons/fa";
+import { VscGraph } from "react-icons/vsc";
+import { AiOutlineFileSearch } from "react-icons/ai";
+import { IoMdClose } from "react-icons/io";
+import { GiHamburgerMenu } from "react-icons/gi";
 
 function GetInsights() {
     const [loading, setLoading] = useState(false);
@@ -146,7 +151,7 @@ function GetInsights() {
             <div className="insights-container">
                 <div className={`sidebar ${isSidebarOpen ? 'expanded' : 'collapsed'}`}>
                     <button className="toggle-btn" onClick={toggleSidebar}>
-                        {isSidebarOpen ? '<' : '>'}
+                        {isSidebarOpen ? <IoMdClose size={30}/> : <GiHamburgerMenu size={30}/>}
                     </button>
                     {isSidebarOpen && (
                         <div>
@@ -154,10 +159,18 @@ function GetInsights() {
                                 <h1>Menu</h1>
                                 <div className='sidebar-menu-buttons'>
                                     {/* <button className='menu-button' onClick={() => setActiveButton('home')}>Home</button> */}
-                                    <button className='menu-button' onClick={() => setActiveButton('keyword_count')}>Keyword Count</button>
-                                    <button className='menu-button' onClick={() => setActiveButton('ner')}>Named Entity Recognition</button>
-                                    <button className='menu-button' onClick={() => setActiveButton('topic_modeling')}>Topic Modeling</button>
-                                    <button className='menu-button' onClick={() => setActiveButton('q_a')}>Q&A</button>
+                                    <button className={`menu-button ${activeButton==='keyword_count' ? 'active' : ''}`} onClick={() => setActiveButton('keyword_count')}>
+                                        <FaSearchLocation/> Keyword Count
+                                    </button>
+                                    <button className={`menu-button ${activeButton==='ner' ? 'active' : ''}`} onClick={() => setActiveButton('ner')}>
+                                        <FaUserTag/> Entity Recognition
+                                    </button>
+                                    <button className={`menu-button ${activeButton==='topic_modeling' ? 'active' : ''}`} onClick={() => setActiveButton('topic_modeling')}>
+                                        <VscGraph/> Topic Modeling
+                                    </button>
+                                    <button className={`menu-button ${activeButton==='q_a' ? 'active' : ''}`} onClick={() => setActiveButton('q_a')}>
+                                        <AiOutlineFileSearch/> Q&A
+                                    </button>
                                 </div>
                             </div>
                                 

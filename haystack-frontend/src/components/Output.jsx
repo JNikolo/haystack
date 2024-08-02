@@ -11,10 +11,21 @@ import Loading from './Loading';
 
 function Output({ activeButton }) {
     const [question, setQuestion] = useState('');
-    const [response, setResponse] = useState('');
+    const [response, setResponse] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [keyword, setKeyword] = useState('');
+    const [error, setError] = useState(null);
     // const [activeButtonNlp, setActiveButtonNlp] = useState('left');
     // const [buttonClicked, setButtonClicked] = useState(true);
+    useEffect(() => {
+        const response = JSON.parse(localStorage.getItem('llm-response'));
+        if (response) {
+            setResponse(response);
+        }
+        else{
+            setResponse(null);
+        }
+    }, []);
 
     const handleQuestionChange = (e) => {
         setQuestion(e.target.value);
@@ -47,7 +58,17 @@ function Output({ activeButton }) {
 
         for (let pdfID of selectedPdfs) {
             const pdf = await getPdfById(pdfID);
-            newpdfList.push(pdf);
+            if (pdf) {
+                newpdfList.push(pdf);
+            }
+            else{
+                console.log('PDF not found in indexedDB');
+                const filteredPdfs = selectedPdfs.filter(pdf => pdf !== pdfID);
+                localStorage.setItem('selectedPdfs', JSON.stringify(filteredPdfs));
+                setIsLoading(false);
+                setError('A PDF was not found! Try again.');
+                return;
+            }
         }
 
         //const user_id = user.uid; // Get the current user's UUID
@@ -79,6 +100,7 @@ function Output({ activeButton }) {
             if (response.ok) {
                 const data = await response.json();
                 setResponse(data);
+                localStorage.setItem('llm-response', JSON.stringify(data));
             } else {
                 const errorData = await response.json();
                 setResponse({ error: errorData.detail });
@@ -98,6 +120,9 @@ function Output({ activeButton }) {
     const renderResponse = () => {
         if (!response) {
             return null;
+        }
+        if (error) {
+            return <p>Error: {error}</p>;
         }
         if (response.error) {
             return <p>Error: {response.error}</p>;
@@ -175,7 +200,7 @@ function Output({ activeButton }) {
             )} */}
             {activeButton === 'keyword_count' && (
                 <>
-                    <KeywordCounting />
+                    <KeywordCounting keyword={keyword} setKeyword={setKeyword}/>
                 </>
             )}
             {activeButton === 'ner' && (
@@ -191,7 +216,7 @@ function Output({ activeButton }) {
             {activeButton === 'q_a' && (
                 <>
                     <div className="question-section">
-                        <h2>Ask a Question</h2>
+                        <h2>Query your documents!</h2>
                         <form onSubmit={handleQuestionSubmit} className="question-form">
                             <textarea
                                 value={question}

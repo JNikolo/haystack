@@ -38,8 +38,8 @@ function Header() {
         try {
             await signOutWrapper();
             await clearDatabase(); // Clear the IndexedDB database after signing out
-            localStorage.removeItem('selectedPdfs')
-            localStorage.removeItem('pdfsTotalSize')
+            localStorage.removeItem('selectedPdfs');
+            localStorage.removeItem('pdfsTotalSize');
 
             // Call delete_embeddings route after signing out
             const response = await fetch('http://127.0.0.1:8000/delete_embeddings/', {

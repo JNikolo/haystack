@@ -1,16 +1,29 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './KeywordCount.css';
 import { getPdfById } from '../utils/indexedDB';
 import Loading from './Loading';
 
-function KeywordCounting({}) {
-    const [keyword, setKeyword] = useState('');
+function KeywordCounting({keyword, setKeyword}) {
+    // const [keyword, setKeyword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [apiResponse, setApiResponse] = useState(null);
     const [error, setError] = useState(null);
     const [submittedKeyword, setSubmittedKeyword] = useState('');
 
+    useEffect(() => {
+        setSubmittedKeyword(keyword);
+        const keywordResults = JSON.parse(localStorage.getItem('keywordResults'));
+        if (keywordResults) {
+            setApiResponse(keywordResults);
+        }
+        else{
+            setApiResponse(null);
+        }
+    }, []);
+
+
     const handleSubmit = async (e) => {
+        setApiResponse(null);
         e.preventDefault();
         setSubmittedKeyword(keyword);
         setIsLoading(true);
@@ -41,7 +54,17 @@ function KeywordCounting({}) {
 
         for (let pdfID of selectedPdfs) {
             const pdf = await getPdfById(pdfID);
-            formData.append('files', pdf.file);
+            if (pdf) {
+                formData.append('files', pdf.file);
+            }
+            else{
+                console.log('PDF not found in indexedDB');
+                const filteredPdfs = selectedPdfs.filter(pdf => pdf !== pdfID);
+                localStorage.setItem('selectedPdfs', JSON.stringify(filteredPdfs));
+                setIsLoading(false);
+                setError('A PDF was not found! Try again.');
+                return;
+            }
         }
 
         console.log('Form Data: ', formData);
@@ -61,6 +84,7 @@ function KeywordCounting({}) {
             const data = await response.json();
             if (data.status === 'success') {
                 setApiResponse(data);
+                localStorage.setItem('keywordResults', JSON.stringify(data));
                 setError(null); // Reset error state if successful
             } else {
                 throw new Error(data.message || 'Failed to fetch keyword count');
@@ -83,6 +107,8 @@ function KeywordCounting({}) {
         setKeyword('');
         setApiResponse(null);
         setError(null);
+        setSubmittedKeyword('');
+        localStorage.removeItem('keywordResults');
     };
 
     const downloadResults = () => {
@@ -101,7 +127,7 @@ function KeywordCounting({}) {
     };
     return (
         <div className="keyword-counting">
-            <h2>Get keyword counting for your PDFs!</h2>
+            <h2>Keyword Frequency for your PDFs!</h2>
             <form className="keyword-form">
                 <textarea
                     value={keyword}

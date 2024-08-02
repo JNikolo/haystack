@@ -65,7 +65,7 @@ body {
     left: 0;
     width: 50px; /* default width for collapsed state */
     padding: 30px 20px;
-    transition: width 0.5s;
+    transition: width 0.04s;
     z-index: 1000;
     background-color: #0f172a;
     height: 85vh;
@@ -91,12 +91,13 @@ body {
     color: black;
     border: none;
     cursor: pointer;
-    padding: 5px 20px;
+    padding: 5px 10px 0px 10px;
     transition: right 0.5s;
     z-index: 1100; /* Ensure it's above the sidebar content */
     font-weight: bold;
     font-size: 25px;
     border-radius: 5px;
+    align-items: center;
 }
 
 .toggle-btn:hover{
@@ -135,6 +136,11 @@ body {
 }
 
 .menu-button:hover{
+    background-color: rgb(51 65 85);
+    color: white;
+}
+
+.menu-button.active{
     background-color: rgb(51 65 85);
     color: white;
 }

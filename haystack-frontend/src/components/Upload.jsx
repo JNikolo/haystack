@@ -3,6 +3,7 @@ import { addPdfToDatabase, generateFileHash, getAllPdfs, deletePdfById, clearDat
 import { auth } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
 import './Upload.css';
+import { IoMdCloudUpload, IoMdClose } from "react-icons/io";
 
 const MAX_TOTAL_SIZE = 200 * 1024 * 1024; // 200MB
 
@@ -297,6 +298,43 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
         }
     };
 
+    const handleDeleteAll = async () => {
+
+        setUploading(true);
+        
+        if (!userLoggedIn) {
+            alert('You are not authenticated. Please sign in to upload PDFs.');
+            console.error('User not authenticated');
+            return;
+        }
+
+        try{
+            
+            // Call delete_embeddings route after signing out
+            const response = await fetch('http://127.0.0.1:8000/delete_embeddings/', {
+                method: 'DELETE',
+                credentials: 'include',
+                mode: 'cors',
+                    // Add any headers or body data if required
+            });
+        
+            if (response.ok) {
+                await clearDatabase(); // Clear the IndexedDB database
+                localStorage.removeItem('selectedPdfs');
+                localStorage.removeItem('pdfsTotalSize');
+            } else {
+                console.error("Failed to delete embeddings:", response.statusText);
+            }
+        } catch (error) {
+            console.error("Error signing out:", error);
+        } finally {
+            setUploading(false);
+            onFileChange();
+            setUploadStatus({});
+            setHashList([]);
+        }
+    }
+
     return (
         <div className="upload-pdfs">
             <h1 id="title">Upload your PDFs</h1>
@@ -307,21 +345,27 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
             >
-                <p>Drag & Drop files here</p>
-                <p>Limit 200MB in total</p>
-                <p>Only .pdf accepted</p>
+                <div className='upload-text-container'>
+                    <div className="upload-icon"><IoMdCloudUpload size={30}/></div>
+                    <div className='upload-text'>
+                        <h4>Drag & Drop files here</h4>
+                        <p>Limit: 200MB in total!</p>
+                    </div>
+                </div>
 
-                <input
-                    type="file"
-                    multiple
-                    accept="application/pdf"
-                    id="file-input"
-                    onChange={handleFileInputChange}
-                    style={{ display: 'none' }}
-                />
-                <label className="file-input-label" htmlFor="file-input">
-                    Browse
-                </label>
+                <div className='browse-button-container'>
+                    <input
+                        type="file"
+                        multiple
+                        accept="application/pdf"
+                        id="file-input"
+                        onChange={handleFileInputChange}
+                        style={{ display: 'none' }}
+                    />
+                    <label className="file-input-label" htmlFor="file-input">
+                        Browse
+                    </label>
+                </div>
             </div>
 
             <div className="uploaded-files">
@@ -345,7 +389,7 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
                                             onClick={() => handleRemovePdf(pdf.id)}
                                             disabled={loading}
                                         >
-                                            X
+                                            <IoMdClose size={13}/>
                                         </button>
                                     </li>
                                 ))}
@@ -359,7 +403,7 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
                 <div className="pdf-list">
                     {Object.keys(uploadStatus).map((fileName) => (
                         <div key={fileName} className="upload-progress-item">
-                            <p>{fileName}</p>
+                            <div className='filename'><p>{fileName}</p></div>
                             {uploadStatus[fileName] === 'loading' ? (
                                 <div className="loading-animation"></div>
                             ) : (
@@ -367,6 +411,18 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
                             )}
                         </div>
                     ))}
+                </div>
+            )}
+
+            {pdfList.length !== 0 &&(
+                <div className="delete-button-container">
+                    <button
+                        className="file-input-label"
+                        onClick={handleDeleteAll}
+                        disabled={uploading}
+                    >
+                        Delete All
+                    </button>
                 </div>
             )}
         </div>

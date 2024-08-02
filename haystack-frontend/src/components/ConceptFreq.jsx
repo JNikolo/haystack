@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Bar } from 'react-chartjs-2';
 import 'chart.js/auto';
 import './ConceptFreq.css';
@@ -22,6 +22,16 @@ function ConceptFreq({}) {
     const [error, setError] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
+    useEffect(() => {
+        const plotData = JSON.parse(localStorage.getItem('plotData'));
+        if (plotData) {
+            setPlotData(plotData);
+        }
+        else{
+            setPlotData(null);
+        }
+    }, []);
+
 
     const handleGeneratePlots = async () => {
         setIsLoading(true);
@@ -43,7 +53,17 @@ function ConceptFreq({}) {
 
         for (let pdfID of selectedPdfs) {
             const pdf = await getPdfById(pdfID);
-            formData.append('files', pdf.file);
+            if (pdf) {
+                formData.append('files', pdf.file);
+            }
+            else{
+                console.log('PDF not found in indexedDB');
+                const filteredPdfs = selectedPdfs.filter(pdf => pdf !== pdfID);
+                localStorage.setItem('selectedPdfs', JSON.stringify(filteredPdfs));
+                setIsLoading(false);
+                setError('A PDF was not found! Try again.');
+                return;
+            }
         }
 
         try {
@@ -61,6 +81,7 @@ function ConceptFreq({}) {
 
             const data = await response.json();
             setPlotData(data.results);
+            localStorage.setItem('plotData', JSON.stringify(data.results));
             setError(null); // Reset error state
         } catch (error) {
             setError(error.message || 'Failed to generate plots');
@@ -71,6 +92,8 @@ function ConceptFreq({}) {
 
     const handleClearPlot = () => {
         setPlotData(null);
+        setError(null);
+        localStorage.removeItem('plotData');
     };
 
     // Define a color palette
@@ -140,18 +163,25 @@ function ConceptFreq({}) {
 
     return (
         <div className="concept-freq">
-            <h2>Concept Frequency</h2>
+            <h2>Perform Entity Recognition on Your PDFs!</h2>
             <button className='frequency-button' onClick={handleGeneratePlots} disabled={isLoading }>
                 Generate Plot
             </button>
-            {isLoading && <Loading />}
+            <button className='frequency-button' onClick={handleOpenModal}>
+                Show NER Label Definitions
+            </button>
+            {isLoading && (
+                <div className="loading-concept">
+                    <Loading />
+                </div>
+            )}
             {error && <p className="error-message">{error}</p>}
             {plotData && (
                     <div className="plot-container">
                         <Bar data={chartData} options={chartOptions} width={800}/>
                     </div>
             )}
-            <button className='frequency-button' onClick={handleOpenModal}>Show NER Label Definitions</button> 
+             
             <button className='frequency-button' onClick={handleClearPlot}>Clear</button>
             {isModalOpen && (
                 <div className="modal">
