@@ -61,8 +61,63 @@
     justify-content: center; /* Centers the loading spinner horizontally */
     align-items: center;     /* Centers the loading spinner vertically */
 }
-.qa_output {
+/* .qa_output {
     text-align: left;
+    white-space: pre-line;
+    height: auto;
+}
+
+.qa_output li {
+    list-style-type: none;
+    margin-bottom: 10px;
+    padding: 10px;
+    width: auto;
+} */
+
+/* .qa_output {
+    text-align: left;
+    white-space: pre-line; 
+    height: auto;
+    padding: 10px; 
+    border: 1px solid #ddd;
+    border-radius: 5px; 
+    margin-bottom: 20px; 
+    background-color: #f9f9f9; 
+    color: black
+} */
+
+.html-parsed h3 {
+    margin-top: 0; /* Remove top margin for better alignment */
+    margin-bottom: 10px; /* Add space below the heading */
+    font-size: 1.2em; /* Slightly larger font for headings */
+}
+
+.html-parsed p {
+    margin: 0; /* Remove margin around paragraph */
+    font-size: 1em; /* Standard font size for paragraphs */
+    color: white; /* Slightly lighter color for paragraph text */
+}
+
+.html-parsed li {
+    margin-bottom: 10px; /* Add space below list items */
+    padding: 10px; /* Add padding inside list items */
+    list-style-type: disc; /* Use disc bullets for unordered lists */
+}
+
+.html-parsed ul {
+    padding-left: 20px; /* Indent list items */
+    margin: 0; /* Remove margin around unordered list */
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.html-parsed {
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    background-color: black;
+    color: white;
 }
 
 .nlpOutput {

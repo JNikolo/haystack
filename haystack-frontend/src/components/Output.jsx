@@ -7,7 +7,8 @@ import './Output.css';
 import TopicModeling from './TopicModeling';
 import { getPdfById } from '../utils/indexedDB';
 import Loading from './Loading';
-
+import parse from 'html-react-parser';
+import DOMPurify from 'dompurify';
 
 function Output({ activeButton }) {
     const [question, setQuestion] = useState('');
@@ -132,13 +133,15 @@ function Output({ activeButton }) {
             console.log('answers: ', response.result);
             
             let answers = response.result;
+            answers = answers.map(answer => DOMPurify.sanitize(answer));
             let doc_ids = response.doc_ids;
             if (Array.isArray(answers) && Array.isArray(doc_ids) && answers.length === doc_ids.length) {
                 return answers.map((answer, index) => (
                     <div className='qa_output' key={index}>
                         <div>
                             <h3><strong>{`${doc_ids[index]}`}</strong></h3>
-                            <p>{`Answer: ${answer}`}</p><br/>
+                            <p>Answer:</p>
+                            <div className='html-parsed'>{parse(answer)}</div>
                         </div>
                     </div>
                 ));
