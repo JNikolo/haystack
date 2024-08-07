@@ -199,3 +199,13 @@ body, html {
     letter-spacing: 0.5px;
     margin: 20px 0 30px;
 }
+
+.signin-error{
+    position: absolute;
+    color: red;
+    font-size: 14px;
+    margin-top: 10px;
+    width: 100%; /* Make sure it spans the form width */
+    text-align: center; /* Center the text */
+    top: 230px; 
+}

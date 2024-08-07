@@ -11,7 +11,7 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
     const [dragging, setDragging] = useState(false);
     //const [pdfsTotalSize, setPdfsTotalSize] = useState(0);
     const [uploadStatus, setUploadStatus] = useState({}); 
-    const [uploading, setUploading] = useState(false); 
+    const [uploading, setUploading] = useState(false);
     const [hashList, setHashList] = useState([]);
     const { userLoggedIn } = useAuth();
 
@@ -300,8 +300,6 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
 
     const handleDeleteAll = async () => {
 
-        setUploading(true);
-        
         if (!userLoggedIn) {
             alert('You are not authenticated. Please sign in to upload PDFs.');
             console.error('User not authenticated');
@@ -322,16 +320,19 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
                 await clearDatabase(); // Clear the IndexedDB database
                 localStorage.removeItem('selectedPdfs');
                 localStorage.removeItem('pdfsTotalSize');
+                localStorage.removeItem('plotData');
+                localStorage.removeItem('llm-response');
+                localStorage.removeItem('topicData');
+                console.log("Embeddings deleted successfully");
             } else {
                 console.error("Failed to delete embeddings:", response.statusText);
             }
         } catch (error) {
             console.error("Error signing out:", error);
         } finally {
-            setUploading(false);
-            onFileChange();
             setUploadStatus({});
             setHashList([]);
+            onFileChange();
         }
     }
 
@@ -395,6 +396,15 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
                                 ))}
                             </ul>
                         </div>
+                        <div className="delete-button-container">
+                            <button
+                                className="delete-button"
+                                onClick={handleDeleteAll}
+                                disabled={uploading}
+                            >
+                                Delete All
+                            </button>
+                        </div>
                     </>
                 )}
             </div>
@@ -411,18 +421,6 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
                             )}
                         </div>
                     ))}
-                </div>
-            )}
-
-            {pdfList.length !== 0 &&(
-                <div className="delete-button-container">
-                    <button
-                        className="file-input-label"
-                        onClick={handleDeleteAll}
-                        disabled={uploading}
-                    >
-                        Delete All
-                    </button>
                 </div>
             )}
         </div>

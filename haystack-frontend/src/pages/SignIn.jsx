@@ -7,6 +7,7 @@ import { useNavigate, Navigate } from "react-router-dom";
 import { verifyLogin } from '../firebase/auth'
 import "./SignIn.css";
 import Header from '../components/Header';
+import { BiSolidError } from "react-icons/bi";
 
 function SignIn() {
     const { userLoggedIn } = useAuth();
@@ -14,6 +15,8 @@ function SignIn() {
     //const isLogged = verifyLogin();
     const [signIn, toggle] = useState(true);
     const [email, setEmail] = useState("");
+    const [emailError, setEmailError] = useState(false);
+    const [credentialError, setCredentialError] = useState(false);
     const [password, setPassword] = useState("");
     //const [isLogged, setIsLogged] = useState(null);
     const navigate = useNavigate();
@@ -28,12 +31,44 @@ function SignIn() {
     //         })
     // } ,[]);
 
+    const validateEmail = (email) => {
+        const re = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/;
+        if (!re.test(String(email).toLowerCase())) {
+          return 'Invalid email format.';
+        }
+        return null;
+    }
+
     const handleSignIn = (e) => {
         
         e.preventDefault();
-        signInWrapper(email, password).then(() => {
-            navigate("/"); // Redirect to GetInsights page
+        const emailError = validateEmail(email);
+        if (emailError) {
+            console.error("Invalid email format.");
+            setEmailError(true);
+            return;
+        }
+        else {
+            setEmailError(false);
+        }
+        
+        signInWrapper(email, password)
+        .then(() => {
+            setCredentialError(false);
+            navigate("/"); // Redirect to GetInsights page on successful sign-in
+        })
+        .catch(error => {
+            console.log('Error signing in:', error);
+            if (error.code==="auth/invalid-credential"){
+                console.log("Invalid credentials");
+                setCredentialError(true);
+                return;
+            }
+            // Handle the error appropriately, e.g., display an error message to the user
         });
+        
+        
+        
         // signInWithEmailAndPassword(auth, email, password)
         //     .then((userCredential) => {
         //         // Signed in
@@ -69,6 +104,13 @@ function SignIn() {
         return (<Navigate to="/" />);
     }
 
+    const handleInputChange = (e) => {
+        setEmailError(false);
+        setCredentialError(false);
+        if (e.target.type === 'email') setEmail(e.target.value);
+        if (e.target.type === 'password') setPassword(e.target.value);
+    };
+
     return (
         <>
         {/*isLogged && (<Navigate to="/getinsights" />)*/}
@@ -89,8 +131,10 @@ function SignIn() {
             <div className={`sign-in-container ${signIn ? "active" : ""}`}>
                 <form className="form" onSubmit={handleSignIn}>
                     <h1 className="title">Sign in</h1>
-                    <input type="email" placeholder="Email" className="input" onChange={(e) => setEmail(e.target.value)} />
-                    <input type="password" placeholder="Password" className="input" onChange={(e) => setPassword(e.target.value)} />
+                    {credentialError && <p className="signin-error"><BiSolidError/> Invalid Credentials. Please try again!</p>}
+                    {emailError && <p className="signin-error"><BiSolidError/> Invalid email format.</p>}
+                    <input type="email" placeholder="Email" className="input" onChange={(e) => handleInputChange(e)} />
+                    <input type="password" placeholder="Password" className="input" onChange={(e) => handleInputChange(e)} />
                     <button className="button" type="submit">Sign In</button>
                 </form>
             </div>

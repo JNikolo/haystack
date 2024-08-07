@@ -2,23 +2,20 @@ import { auth } from "./config"; // Import Firebase auth instance
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword} from "firebase/auth";
 
 export const signInWrapper = async (email, password) => {
-    try{
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const user= userCredential.user;
+    
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const user= userCredential.user;
         
-        const idToken= await user.getIdToken();
+    const idToken= await user.getIdToken();
 
-        //const csrfToken = getCookie('csrfToken');
+    //const csrfToken = getCookie('csrfToken');
 
-        await postIdTokenToSessionLogin(idToken);//, csrfToken);
+    await postIdTokenToSessionLogin(idToken);//, csrfToken);
 
     // window.localStorage.setItem("isLogged", true);
         
-        //await auth.signOut();
-    }catch (error) {
-        console.error('Error signing in:', error);
-        throw error; // Handle error appropriately in your application
-    }
+    //await auth.signOut();
+    
 }
 
 export const createUserWrapper = async (email, password) => {

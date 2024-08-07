@@ -231,3 +231,21 @@ li input[type="checkbox"]:checked + label::after {
     width: 320px;
     align-items: left;
 }
+
+.delete-button-container {
+    margin-top: 20px;
+}
+
+.delete-button {
+    background-color: white;
+    color: black;
+    border: none;
+    border-radius: 5px;
+    padding: 8px; /* Adjusted padding for better spacing */
+    cursor: pointer;
+}
+
+.delete-button:hover {
+    background-color: rgb(51 65 85);
+    color: white;
+}

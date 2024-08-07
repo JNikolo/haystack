@@ -94,7 +94,13 @@ function GetInsights() {
 
     const loadPdfs = async () => {
         const allPdfs = await getAllPdfs();
-        setPdfList(allPdfs);
+        const selectedPdfs = localStorage.getItem('selectedPdfs') ? JSON.parse(localStorage.getItem('selectedPdfs')) : [];
+
+        const updatedPdfs = allPdfs.map(pdf => ({
+            ...pdf,
+            selected: selectedPdfs.includes(pdf.id),
+        }));
+        setPdfList(updatedPdfs);
     };
 
     // const handleFileChange = async (event) => {

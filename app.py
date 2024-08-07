@@ -153,7 +153,7 @@ def submit_docs_for_rag(submitted_pdf:UploadFile):
         text = page.extract_text()
         if text:
             raw_text += text
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=250, chunk_overlap=75)
 
     docs = text_splitter.split_text(raw_text)#, metadatas = [{'doc_id' : 1}])
 
@@ -356,7 +356,7 @@ def Haystack_qa_1(query: str, namespace:str, doc_id:int):
 
     retriever = RETRIEVER_STORE.as_retriever(
         search_type = "similarity_score_threshold", 
-        search_kwargs = {"k": 10, 'score_threshold': 0.7, 'filter': {"doc_id": doc_id}}   
+        search_kwargs = {"k": 10, 'score_threshold': 0.5, 'filter': {"doc_id": doc_id}}   
     )
 
     # Retrieve documents
@@ -370,10 +370,10 @@ def Haystack_qa_1(query: str, namespace:str, doc_id:int):
     # Define a prompt template.
     # LangChain passes these documents to the {context} input variable and the user's query to the {question} variable.
     template = """
-    You are looking for the specified keywords or answering questions based on the context given.
-    Use the following pieces of retrieved context to answer the question at the end.
-    If you don't know the answer, just say that you don't know.
-
+    Use the context to answer the question below in as much detail as possible.
+    Keep your answer grounded in the facts of the context.
+    Provide your answer in HTML format, do not include <html> or <body> tags.
+    If you don't know the answer, just say that you don't know.    
     Context: {context}
 
     Question: {question}
@@ -382,7 +382,7 @@ def Haystack_qa_1(query: str, namespace:str, doc_id:int):
 
     # Model settings
     generation_config = {"temperature": 0.9, # Increasing the temperature, the model becomes more creative and takes longer for inference.
-    "top_p": 1, "top_k": 1, "max_output_tokens": 2048}
+    "top_p": 1, "top_k": 10, "max_output_tokens": 2048}
 
     llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", generation_config=generation_config,
                                 safety_settings={
