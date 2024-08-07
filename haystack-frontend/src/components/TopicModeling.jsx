@@ -5,7 +5,6 @@ import 'chart.js/auto';
 import Loading from './Loading';
 import './TopicModeling.css';
 
-
 function CountChart({ data, topicId }) {
     // Filter data for the specific topic
     const topicData = data.filter(item => item.topic_id === topicId);
@@ -17,20 +16,21 @@ function CountChart({ data, topicId }) {
     const chartData = {
         labels: labels,
         datasets: [
-        {
-            label: `Topic ${topicId} Word Count`,
-            backgroundColor: 'rgba(255, 99, 132, 0.6)',
-            borderColor: 'rgba(255, 99, 132, 1)',
-            borderWidth: 1,
-            hoverBackgroundColor: 'rgba(255, 99, 132, 0.8)',
-            hoverBorderColor: 'rgba(255, 99, 132, 1)',
-            data: wordCountValues,
-        },
+            {
+                label: `Topic ${topicId} Word Count`,
+                backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                borderWidth: 1,
+                hoverBackgroundColor: 'rgba(255, 99, 132, 0.8)',
+                hoverBorderColor: 'rgba(255, 99, 132, 1)',
+                data: wordCountValues,
+            },
         ],
     };
 
     const chartOptions = {
         responsive: true,
+        maintainAspectRatio: false,
         scales: {
             x: {
                 beginAtZero: true,
@@ -44,9 +44,8 @@ function CountChart({ data, topicId }) {
         },
     };
 
-    return <Bar data={chartData} options={chartOptions} width={800} />;
-
-};
+    return <Bar data={chartData} options={chartOptions} />;
+}
 
 function ImportanceChart({ importance_data, topicId }) {
     const topicData = importance_data.filter(item => item.topic_id === topicId);
@@ -57,30 +56,37 @@ function ImportanceChart({ importance_data, topicId }) {
     const chartData = {
         labels: labels,
         datasets: [
-        {
-            label: `Topic ${topicId} Importance`,
-            backgroundColor: 'rgba(54, 162, 235, 0.6)',
-            borderColor: 'rgba(54, 162, 235, 1)',
-            borderWidth: 1,
-            hoverBackgroundColor: 'rgba(54, 162, 235, 0.8)',
-            hoverBorderColor: 'rgba(54, 162, 235, 1)',
-            data: importanceValues,
-        },
+            {
+                label: `Topic ${topicId} Importance`,
+                backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1,
+                hoverBackgroundColor: 'rgba(54, 162, 235, 0.8)',
+                hoverBorderColor: 'rgba(54, 162, 235, 1)',
+                data: importanceValues,
+            },
         ],
     };
 
     const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
         scales: {
-        yAxes: [{
-            ticks: {
-            beginAtZero: true,
+            x: {
+                beginAtZero: true,
             },
-        }],
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    precision: 2, // Increase precision to 2 decimal places
+                },
+            },
         },
     };
 
-    return <Bar data={chartData} options={chartOptions} width={800} />;
-};
+    return <Bar data={chartData} options={chartOptions} />;
+}
+
 
 function TopicModelingPlots({ data }) {
     const topicIds = [1, 2, 3, 4, 5];
@@ -91,18 +97,19 @@ function TopicModelingPlots({ data }) {
             {topicIds.map(topicId => (
                 <div key={topicId}>
                     <h4>Topic {topicId}</h4>
-                    {/* Assuming data.count is an array */}
-                    <CountChart data={data.count} topicId={topicId} />
-                    {/* Assuming data.importance is an array */}
-                    <ImportanceChart importance_data={data.importance} topicId={topicId} />
+                    <div className="plot-container">
+                        <CountChart data={data.count} topicId={topicId} />
+                    </div>
+                    <div className="plot-container">
+                        <ImportanceChart importance_data={data.importance} topicId={topicId} />
+                    </div>
                 </div>
             ))}
         </div>
     );
 }
 
-
-function TopicModeling({selectedPdfs}) {
+function TopicModeling({ selectedPdfs }) {
     const [isLoading, setIsLoading] = useState(false);
     const [apiData, setApiData] = useState(null);
     const [error, setError] = useState(null);
@@ -111,12 +118,10 @@ function TopicModeling({selectedPdfs}) {
         const topicData = JSON.parse(localStorage.getItem('topicData'));
         if (topicData) {
             setApiData(topicData);
-        }
-        else{
+        } else {
             setApiData(null);
         }
     }, []);
-
 
     const handleGeneratePlots = async () => {
         setIsLoading(true);
@@ -140,8 +145,7 @@ function TopicModeling({selectedPdfs}) {
             const pdf = await getPdfById(pdfID);
             if (pdf) {
                 formData.append('files', pdf.file);
-            }
-            else{
+            } else {
                 console.log('PDF not found in indexedDB');
                 const filteredPdfs = selectedPdfs.filter(pdf => pdf !== pdfID);
                 localStorage.setItem('selectedPdfs', JSON.stringify(filteredPdfs));
@@ -184,7 +188,7 @@ function TopicModeling({selectedPdfs}) {
     return (
         <div className='topic-modeling'>
             <h2>Analyze Your PDFs with Topic Modeling!</h2>
-            <button className='topic-button' onClick={handleGeneratePlots} disabled={isLoading }>
+            <button className='topic-button' onClick={handleGeneratePlots} disabled={isLoading}>
                 Generate Plot
             </button>
             <button className='topic-button' onClick={handleClearPlot}>Clear</button>

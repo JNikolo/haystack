@@ -9,16 +9,16 @@
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
+    padding-bottom: 50px;
     /* height: auto;
     min-height: 80vh; */
 }
 
 .topic-modeling-plots {
-    height: auto; /* Adjust height to make the plot bigger */
     display: flex;
     flex-direction: column;
-    align-items: center; /* Center items vertically */
-    justify-content: center; /* Center items horizontally */
+    align-items: center;
+    justify-content: center;
 }
 
 .topic-button {
@@ -31,6 +31,14 @@
 }
 
 .topic-button:hover {
-    background-color: rgb(51 65 85);
+    background-color: rgb(51, 65, 85);
     color: white;
+}
+
+.plot-container {
+    display: flex;
+    align-items: center; /* Center items vertically */
+    justify-content: center; /* Center items horizontally */
+    width: 80vw; /* 80% of the viewport width */
+    height: 54vh; /* 60% of the viewport height */
 }

@@ -125,6 +125,7 @@ function ConceptFreq({}) {
 
     const chartOptions = {
         responsive: true,
+        maintainAspectRatio: false,
         scales: {
             x: {
                 beginAtZero: true,
@@ -178,7 +179,7 @@ function ConceptFreq({}) {
             {error && <p className="error-message">{error}</p>}
             {plotData && (
                     <div className="plot-container">
-                        <Bar data={chartData} options={chartOptions} width={800}/>
+                        <Bar data={chartData} options={chartOptions}/>
                     </div>
             )}
              
