@@ -7,38 +7,48 @@ import Options from "../components/Options";
 import Upload from "../components/Upload";
 import './GetInsights.css';
 import { clearDatabase, getAllPdfs, deletePdfById, addPdfToDatabase } from '../utils/indexedDB';
+import { FaSearchLocation, FaUserTag } from "react-icons/fa";
+import { VscGraph } from "react-icons/vsc";
+import { AiOutlineFileSearch } from "react-icons/ai";
+import { IoMdClose } from "react-icons/io";
+import { GiHamburgerMenu } from "react-icons/gi";
 
 function GetInsights() {
     const [loading, setLoading] = useState(false);
-    const [activeButton, setActiveButton] = useState('left');
-    const [pdfList, setPdfList] = useState([]);
+    const [activeButton, setActiveButton] = useState('keyword_count');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [selectedPdfs, setSelectedPdfs] = useState([]);
+    const [pdfList, setPdfList] = useState([]);
 
 
     useEffect(() => {
         const handleBeforeUnload = (event) => {
-            // Standard message to show prompt
             const message = "Are you sure you want to leave? Unsaved changes may be lost.";
-            event.returnValue = message; // Standard way to display a prompt
-            return message; // For some browsers
+            event.preventDefault(); // Standard way to display a prompt in some browsers
+            event.returnValue = message; // For others
+            return message;
         };
-    
+
         const handleUnload = () => {
-            // Clear the database when the page is actually unloading
             clearDatabase().then(() => {
                 console.log("Database cleared on session end");
+            }).catch((error) => {
+                console.error("Error clearing the database: ", error);
             });
         };
-    
+
         window.addEventListener('beforeunload', handleBeforeUnload);
         window.addEventListener('unload', handleUnload);
-    
+
         return () => {
             window.removeEventListener('beforeunload', handleBeforeUnload);
             window.removeEventListener('unload', handleUnload);
         };
     }, []);
+
+    useEffect(() => {
+        loadPdfs();
+    }
+    , []);
 
     // const handleSubmit = async (selectedPdfs) => {
     //     setLoading(true);
@@ -84,7 +94,13 @@ function GetInsights() {
 
     const loadPdfs = async () => {
         const allPdfs = await getAllPdfs();
-        setPdfList(allPdfs);
+        const selectedPdfs = localStorage.getItem('selectedPdfs') ? JSON.parse(localStorage.getItem('selectedPdfs')) : [];
+
+        const updatedPdfs = allPdfs.map(pdf => ({
+            ...pdf,
+            selected: selectedPdfs.includes(pdf.id),
+        }));
+        setPdfList(updatedPdfs);
     };
 
     // const handleFileChange = async (event) => {
@@ -97,20 +113,28 @@ function GetInsights() {
 
     const handleFileChange = async () => {
         await loadPdfs(); // Reload PDFs after file change
-        
     };
 
     const handleCheckboxChange = (event, id) => {
         console.log('event: ', event.target.checked);
+
+        let selectedPdfs = localStorage.getItem('selectedPdfs') ? JSON.parse(localStorage.getItem('selectedPdfs')) : [];
+        console.log('selectedPdfs: ', selectedPdfs);
         if (event.target.checked) {
-            setSelectedPdfs([...selectedPdfs, id]);
+            if (selectedPdfs.indexOf(id) === -1){
+                selectedPdfs.push(id);
+            }  
         }
         else {
-            setSelectedPdfs(selectedPdfs.filter(pdfId => pdfId !== id));
+            selectedPdfs = selectedPdfs.filter(pdfId => pdfId !== id);
         }
+
+        localStorage.setItem('selectedPdfs', JSON.stringify(selectedPdfs));
+
         console.log('id: ', id);
         const updatedPdfs = pdfList.map(pdf => pdf.id === id ? { ...pdf, selected: !pdf.selected } : pdf);
         console.log('updatedPdfs: ', updatedPdfs[0].selected);
+        //was commented out \/
         setPdfList(updatedPdfs);
 
     };
@@ -120,7 +144,10 @@ function GetInsights() {
         const updatedPdfs = pdfList.filter(pdf => pdf.id !== id);
         setPdfList(updatedPdfs);
         
-        setSelectedPdfs(selectedPdfs.filter(pdfId => pdfId !== id));
+        let selectedPdfs = localStorage.getItem('selectedPdfs') ? JSON.parse(localStorage.getItem('selectedPdfs')) : [];
+        console.log('selectedPdfs: ', selectedPdfs);
+        selectedPdfs = selectedPdfs.filter(pdfId => pdfId !== id);
+        localStorage.setItem('selectedPdfs', JSON.stringify(selectedPdfs));
     };
     
     
@@ -130,16 +157,40 @@ function GetInsights() {
             <div className="insights-container">
                 <div className={`sidebar ${isSidebarOpen ? 'expanded' : 'collapsed'}`}>
                     <button className="toggle-btn" onClick={toggleSidebar}>
-                        {isSidebarOpen ? '<' : '>'}
+                        {isSidebarOpen ? <IoMdClose size={30}/> : <GiHamburgerMenu size={30}/>}
                     </button>
                     {isSidebarOpen && (
-                        <Upload
-                            loading={loading}
-                            pdfList={pdfList}
-                            onFileChange={handleFileChange}
-                            onCheckboxChange={handleCheckboxChange}
-                            onPdfRemove={handleRemovePdf}
-                        />
+                        <div>
+                            <div className="sidebar-menu">
+                                <h1>Menu</h1>
+                                <div className='sidebar-menu-buttons'>
+                                    {/* <button className='menu-button' onClick={() => setActiveButton('home')}>Home</button> */}
+                                    <button className={`menu-button ${activeButton==='keyword_count' ? 'active' : ''}`} onClick={() => setActiveButton('keyword_count')}>
+                                        <FaSearchLocation/> Keyword Count
+                                    </button>
+                                    <button className={`menu-button ${activeButton==='ner' ? 'active' : ''}`} onClick={() => setActiveButton('ner')}>
+                                        <FaUserTag/> Entity Recognition
+                                    </button>
+                                    <button className={`menu-button ${activeButton==='topic_modeling' ? 'active' : ''}`} onClick={() => setActiveButton('topic_modeling')}>
+                                        <VscGraph/> Topic Modeling
+                                    </button>
+                                    <button className={`menu-button ${activeButton==='q_a' ? 'active' : ''}`} onClick={() => setActiveButton('q_a')}>
+                                        <AiOutlineFileSearch/> Q&A
+                                    </button>
+                                </div>
+                            </div>
+                                
+
+                            <div className="sidebar-upload">
+                                <Upload
+                                    loading={loading}
+                                    pdfList={pdfList}
+                                    onFileChange={handleFileChange}
+                                    onCheckboxChange={handleCheckboxChange}
+                                    onPdfRemove={handleRemovePdf}
+                                />
+                            </div>
+                        </div>
                     )}
                 </div>
                 {/* <Sidebar 
@@ -160,11 +211,11 @@ function GetInsights() {
                 </div> */}
                 {/* <div className="right-side"> */}
                 <div className={`main-content ${isSidebarOpen ? 'expanded' : ''}`}>
-                    <div className="box options-box">
+                    {/* <div className="box options-box">
                         <Options activeButton={activeButton} setActiveButton={setActiveButton} />
-                    </div>
+                    </div> */}
                     <div className="box output-box">
-                        <Output activeButton={activeButton} selectedPdfs={selectedPdfs} />
+                        <Output activeButton={activeButton} />
                     </div>
                 </div>
             </div>

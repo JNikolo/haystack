@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Bar } from 'react-chartjs-2';
 import 'chart.js/auto';
 import './ConceptFreq.css';
@@ -16,15 +16,32 @@ const labelDefinitions = {
 };
 
 
-function ConceptFreq({ selectedPdfs}) {
+function ConceptFreq({}) {
     const [isLoading, setIsLoading] = useState(false);
     const [plotData, setPlotData] = useState(null);
     const [error, setError] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
+    useEffect(() => {
+        const plotData = JSON.parse(localStorage.getItem('plotData'));
+        if (plotData) {
+            setPlotData(plotData);
+        }
+        else{
+            setPlotData(null);
+        }
+    }, []);
+
 
     const handleGeneratePlots = async () => {
         setIsLoading(true);
+        const selectedPdfs = JSON.parse(localStorage.getItem('selectedPdfs'));
+
+        if (!selectedPdfs || selectedPdfs.length === 0) {
+            alert('Please select PDFs');
+            setIsLoading(false);
+            return;
+        }
 
         // Filter selected PDFs
         //const selectedPdfs = pdfList.filter(pdf => pdf.selected);
@@ -36,7 +53,17 @@ function ConceptFreq({ selectedPdfs}) {
 
         for (let pdfID of selectedPdfs) {
             const pdf = await getPdfById(pdfID);
-            formData.append('files', pdf.file);
+            if (pdf) {
+                formData.append('files', pdf.file);
+            }
+            else{
+                console.log('PDF not found in indexedDB');
+                const filteredPdfs = selectedPdfs.filter(pdf => pdf !== pdfID);
+                localStorage.setItem('selectedPdfs', JSON.stringify(filteredPdfs));
+                setIsLoading(false);
+                setError('A PDF was not found! Try again.');
+                return;
+            }
         }
 
         try {
@@ -54,6 +81,7 @@ function ConceptFreq({ selectedPdfs}) {
 
             const data = await response.json();
             setPlotData(data.results);
+            localStorage.setItem('plotData', JSON.stringify(data.results));
             setError(null); // Reset error state
         } catch (error) {
             setError(error.message || 'Failed to generate plots');
@@ -64,6 +92,8 @@ function ConceptFreq({ selectedPdfs}) {
 
     const handleClearPlot = () => {
         setPlotData(null);
+        setError(null);
+        localStorage.removeItem('plotData');
     };
 
     // Define a color palette
@@ -95,6 +125,7 @@ function ConceptFreq({ selectedPdfs}) {
 
     const chartOptions = {
         responsive: true,
+        maintainAspectRatio: false,
         scales: {
             x: {
                 beginAtZero: true,
@@ -103,6 +134,7 @@ function ConceptFreq({ selectedPdfs}) {
                 beginAtZero: true,
                 ticks: {
                     precision: 0,
+                    stepSize: 10, // Set the step size to 20 units
                 },
             },
         },
@@ -132,22 +164,26 @@ function ConceptFreq({ selectedPdfs}) {
 
     return (
         <div className="concept-freq">
-            <h2>Concept Frequency</h2>
-            <button onClick={handleGeneratePlots} disabled={isLoading || !(selectedPdfs.length > 0)}>
+            <h2>Perform Entity Recognition on Your PDFs!</h2>
+            <button className='frequency-button' onClick={handleGeneratePlots} disabled={isLoading }>
                 Generate Plot
             </button>
-            {isLoading && <Loading />}
+            <button className='frequency-button' onClick={handleOpenModal}>
+                Show NER Label Definitions
+            </button>
+            {isLoading && (
+                <div className="loading-concept">
+                    <Loading />
+                </div>
+            )}
             {error && <p className="error-message">{error}</p>}
             {plotData && (
-                <>
-                    <button onClick={handleClearPlot}>Clear</button>
                     <div className="plot-container">
-                        <Bar data={chartData} options={chartOptions} />
+                        <Bar data={chartData} options={chartOptions}/>
                     </div>
-                </>
-                
             )}
-            <button onClick={handleOpenModal} className="definitions-button">Show NER Label Definitions</button>
+             
+            <button className='frequency-button' onClick={handleClearPlot}>Clear</button>
             {isModalOpen && (
                 <div className="modal">
                     <div className="modal-content">

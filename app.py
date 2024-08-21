@@ -153,7 +153,7 @@ def submit_docs_for_rag(submitted_pdf:UploadFile):
         text = page.extract_text()
         if text:
             raw_text += text
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=250, chunk_overlap=75)
 
     docs = text_splitter.split_text(raw_text)#, metadatas = [{'doc_id' : 1}])
 
@@ -233,7 +233,7 @@ async def concepts_frequencies_in_pdfs(pdf_files: List[UploadFile]):
                 entity_info[cleaned_text]['frequency'] += 1
                 entity_info[cleaned_text]['labels'].add(ent.label_)
 
-    sorted_entities = sorted(entity_info.items(), key=lambda x: x[1]['frequency'], reverse=True)[:10]
+    sorted_entities = sorted(entity_info.items(), key=lambda x: x[1]['frequency'], reverse=True)[:15]
     result = []
     for entity, info in sorted_entities:
         result.append({'text': entity, 'frequency': info['frequency'], 'labels': list(info['labels'])})
@@ -326,8 +326,8 @@ async def topic_modeling_from_pdfs(pdf_files: List[UploadFile]):
 
     for i, topic in enumerate(topics):
         for word, weight in topic[1]:
-            out_count.append([word, i, counter[word]])
-            out_importance.append([word, i, weight])
+            out_count.append([word, i + 1, counter[word]])
+            out_importance.append([word, i + 1, weight])
     
     df_count = pd.DataFrame(out_count, columns=['word', 'topic_id', 'word_count'])
     df_importance = pd.DataFrame(out_importance, columns=['word', 'topic_id', 'importance'])
@@ -356,7 +356,7 @@ def Haystack_qa_1(query: str, namespace:str, doc_id:int):
 
     retriever = RETRIEVER_STORE.as_retriever(
         search_type = "similarity_score_threshold", 
-        search_kwargs = {"k": 10, 'score_threshold': 0.7, 'filter': {"doc_id": doc_id}}   
+        search_kwargs = {"k": 10, 'score_threshold': 0.5, 'filter': {"doc_id": doc_id}}   
     )
 
     # Retrieve documents
@@ -370,10 +370,10 @@ def Haystack_qa_1(query: str, namespace:str, doc_id:int):
     # Define a prompt template.
     # LangChain passes these documents to the {context} input variable and the user's query to the {question} variable.
     template = """
-    You are looking for the specified keywords and answering questions based on the keywords.
-    Use the following pieces of retrieved context to answer the question at the end.
-    If you don't know the answer, just say that you don't know.
-
+    Use the context to answer the question below in as much detail as possible.
+    Keep your answer grounded in the facts of the context.
+    Provide your answer in HTML format, do not include <html> or <body> tags.
+    If you don't know the answer, just say that you don't know.    
     Context: {context}
 
     Question: {question}
@@ -382,7 +382,7 @@ def Haystack_qa_1(query: str, namespace:str, doc_id:int):
 
     # Model settings
     generation_config = {"temperature": 0.9, # Increasing the temperature, the model becomes more creative and takes longer for inference.
-    "top_p": 1, "top_k": 1, "max_output_tokens": 2048}
+    "top_p": 1, "top_k": 10, "max_output_tokens": 2048}
 
     llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", generation_config=generation_config,
                                 safety_settings={
@@ -621,7 +621,7 @@ def qa_rag(request: QARAGRequest, user_data: Annotated[dict, Depends(verify_user
     for id in request.doc_ids:
         reply = Haystack_qa_1(request.query, user_id, id)
         replies.append(reply)
-    return {"status":"success", 'result' : replies}
+    return {"status":"success", 'result' : replies, 'doc_ids': request.doc_ids}
 
 #VECTOR_STORE.delete(delete_all=True, namespace='user_1')
 #VECTOR_STORE.delete(delete_all=True, namespace='user_2')
@@ -728,6 +728,7 @@ def session_logout(request: Request):
         response.delete_cookie('session', path='/', httponly=True)
         #response.delete_cookie('session', path='/session_login', httponly=True, secure=True, samesite="None")
         raise HTTPException(status_code=500, detail="Internal Server Error")
+
 
 #VECTOR_STORE.delete(delete_all=True, namespace="user_1")
 #add_docs("OWASP Application Security Verification Standard 4.0.3-en.pdf", "pdfs", 'user_1', 1)

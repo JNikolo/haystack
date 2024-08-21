@@ -2,20 +2,35 @@
     padding: 10px;
     display: flex;
     flex-direction: column;
+    align-items: center;
 }
 
 .keyword-submit{
-    padding: 5px 10px;
-    max-width: 149px;
-    margin-top: 10px;
+    border-radius: 5px;
+    padding: 10px 20px;
+    font-size: 15px;
+    margin: 10px;
+    border: none;
+    cursor: pointer;
 }
 
+.keyword-submit:hover{
+    background-color: rgb(51 65 85);
+    color: white;
+}
 /* .keyword-form{
     min-height: 10vh;
 } */
 
 .keyword-input{
-    margin-top:20px;
-    min-height: 10vh;
-    min-width: 80vw;
+    width: 60vw; /* 70% of the container width */
+    padding: 10px;
+    font-size: 16px;
+    margin-bottom: 10px;
+    border: none;
+    border-radius: 5px;
+    resize: vertical; /* Allow vertical resizing only */
+    overflow: auto; /* Handle overflow content */
+    min-height: 20px; /* Minimum height for the textarea */
+    max-height: 100px; /* Maximum height for the textarea */
 }

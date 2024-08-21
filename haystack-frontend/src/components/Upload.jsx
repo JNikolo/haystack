@@ -1,35 +1,63 @@
 import React, { useState, useEffect } from 'react';
 import { addPdfToDatabase, generateFileHash, getAllPdfs, deletePdfById, clearDatabase } from '../utils/indexedDB';
 import { auth } from '../firebase/config';
+import { useAuth } from '../contexts/AuthContext';
 import './Upload.css';
+import { IoMdCloudUpload, IoMdClose } from "react-icons/io";
 
-const MAX_TOTAL_SIZE = 200 * 1024 * 1024; // 20MB
+const MAX_TOTAL_SIZE = 200 * 1024 * 1024; // 200MB
 
 function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove }) {
     const [dragging, setDragging] = useState(false);
-    const [pdfsTotalSize, setPdfsTotalSize] = useState(0);
+    //const [pdfsTotalSize, setPdfsTotalSize] = useState(0);
     const [uploadStatus, setUploadStatus] = useState({}); 
-    const [uploading, setUploading] = useState(false); 
-    const hashList = [];
+    const [uploading, setUploading] = useState(false);
+    const [hashList, setHashList] = useState([]);
+    const { userLoggedIn } = useAuth();
 
     useEffect(() => {
-        const clearData = async () => {
-            await clearDatabase();
-            onFileChange([]); 
-            setUploadStatus({});
-            setPdfsTotalSize(0);
+
+        const initializeHashList = async () => {
+            const allPdfs = await getAllPdfs();
+            const hashes = allPdfs.map(pdf => pdf.hash);
+            setHashList(hashes);
         };
 
-        clearData();
+        initializeHashList();
     }, []);
 
+    // useEffect(() => {
+    //     const clearData = async () => {
+    //         await clearDatabase();
+    //         onFileChange([]); 
+    //         setUploadStatus({});
+    //         setPdfsTotalSize(0);
+    //     };
+
+    //     clearData();
+    // }, []);
+
     const checkTotalSize = async (files) => {
+        let pdfsTotalSize = localStorage.getItem('pdfsTotalSize');
+        pdfsTotalSize = pdfsTotalSize ? parseInt(pdfsTotalSize, 10) : 0;
+
+        console.log('current total size: ', pdfsTotalSize);
+
+
         const totalSize = files.reduce((acc, file) => acc + file.size, 0);
-        if (totalSize + pdfsTotalSize > MAX_TOTAL_SIZE) {
-            alert('Total size of PDFs exceeds 20MB');
+
+        console.log('New pdfs total size: ', totalSize);
+
+        const newTotalSize = totalSize + pdfsTotalSize;
+        if (newTotalSize > MAX_TOTAL_SIZE) {
+            alert('Total size of PDFs exceeds 200MB');
             return false;
         }
-        setPdfsTotalSize(totalSize + pdfsTotalSize);
+        //setPdfsTotalSize(totalSize + pdfsTotalSize);
+
+        console.log('New total size: ', newTotalSize);
+
+        localStorage.setItem('pdfsTotalSize', newTotalSize);
         return true;
     };
 
@@ -54,20 +82,48 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
 
         const files = Array.from(event.dataTransfer.files);
 
-        const allPdfs = files.every(file => file.type === 'application/pdf');
-        if (!allPdfs) {
+        const isAllPdfs = files.every(file => file.type === 'application/pdf');
+
+        const preProcessedFiles = [];
+        if (!isAllPdfs) {
             alert('Only PDF files are accepted.');
             return;
         }
 
-        if (!await checkTotalSize(files)) {
+        // if (!await checkTotalSize(files)) {
+        //     return;
+        // }
+
+        for (let file of files) {
+            const hash = await generateFileHash(file);
+            console.log(`PDF ${file.name} hash is: ${hash}`);
+
+            if (hashList.includes(hash)) {
+                console.log("Skipping file...");
+                alert(`${file.name} is already uploaded. Skipping file...`);
+                continue;
+            } else {
+                console.log("New file, adding to database");
+                setHashList([...hashList, hash]);
+                preProcessedFiles.push(file);
+                await addPdfToDatabase(file);
+                setUploadStatus(prev => ({ ...prev, [file.name]: 'loading' }));
+            }
+        }
+
+        if (preProcessedFiles.length > 0){
+            if (!await checkTotalSize(preProcessedFiles)) {
+                return;
+            }
+
+            await uploadFiles(preProcessedFiles);
+        }
+        else {
+            console.log('No pdfs after preprocessing :(');
             return;
         }
-        for (let file of files) {
-            await addPdfToDatabase(file);
-        }
-        onFileChange();
-        await uploadFiles(files);
+        // onFileChange();
+        // await uploadFiles(files);
     };
 
     // const removeDuplicates = (pdfList) => {
@@ -77,53 +133,95 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
     // };
 
     const handleFileInputChange = async (event) => {
-        const user = auth.currentUser;
-        if (!user) {
+        //const user = auth.currentUser;
+        console.log('Trying to upload a pdf starting');
+        if (!userLoggedIn) {
+            alert('You are not authenticated. Please sign in to upload PDFs.');
             console.error('User not authenticated');
             return;
         }
 
-        const user_id = user.uid;
-        const formData = new FormData();
-        const newfiles = [];
+        //const user_id = user.uid;
+        // const formData = new FormData();
+        // const newfiles = [];
+
+        console.log('These files are going to be uploaded');
 
         const files = Array.from(event.target.files);
-        if (!await checkTotalSize(files)) {
-            return;
-        }
+        const preProcessedFiles = [];
+        console.log('Files to be uploaded:', files);
 
-        await uploadFiles(files);
-    };
-
-    const uploadFiles = async (files) => {
-        const user = auth.currentUser;
-        if (!user) {
-            console.error('User not authenticated');
-            return;
-        }
-
-        const user_id = user.uid;
-        const formData = new FormData();
-        const newFiles = [];
-        const allPdfs = await getAllPdfs();
-
-        setUploading(true);
+        console.log("Hash List: ", hashList);
 
         for (let file of files) {
             const hash = await generateFileHash(file);
+            console.log(`PDF ${file.name} hash is: ${hash}`);
 
-            if (hashList.includes(hash) || allPdfs.some(pdf => pdf.hash === hash)) {
-                alert(`${file.name} is a duplicate. Skipping...`);
+            if (hashList.includes(hash)) {
+                console.log("Skipping file...");
+                alert(`${file.name} is already uploaded. Skipping file...`);
                 continue;
             } else {
-                hashList.push(hash);
-                newFiles.push(file);
+                console.log("New file, adding to database");
+                setHashList([...hashList, hash]);
+                preProcessedFiles.push(file);
                 await addPdfToDatabase(file);
                 setUploadStatus(prev => ({ ...prev, [file.name]: 'loading' }));
             }
         }
 
-        newFiles.forEach((file) => {
+
+        if (preProcessedFiles.length > 0){
+            if (!await checkTotalSize(preProcessedFiles)) {
+                return;
+            }
+
+            await uploadFiles(preProcessedFiles);
+        }
+        else {
+            console.log('No pdfs after preprocessing :(');
+            return;
+        }
+
+        // Clear the input value to ensure handleFileInputChange is called on re-upload
+        event.target.value = ''; // Clear file input after upload
+    };
+
+    const uploadFiles = async (files) => {
+        //const user = auth.currentUser;
+        // if (!userLoggedIn) {
+        //     console.error('User not authenticated');
+        //     return;
+        // }
+
+        //somehow fixed the bug where the pdf was not being uploaded
+
+        // if (files.length === 1 && pdfList.length === 1){
+        //     console.log('Entering if statement for bug fix');
+        //     const file = files[0];
+        //     const hash = await generateFileHash(file);
+        //     console.log(`PDF ${file.name} hash is: ${hash}`);
+        //     if (hashList.includes(hash)) {
+        //         console.log("Skipping file...");
+        //         alert(`${file.name} is already uploaded. Skipping file...`);
+        //     } else {
+        //         console.log("New file, adding to database");
+        //         setHashList([...hashList, hash]);
+        //         preProcessedFiles.push(file);
+        //         await addPdfToDatabase(file);
+        //         setUploadStatus(prev => ({ ...prev, [file.name]: 'loading' }));
+        //     }
+        // }
+        //const user_id = user.uid;
+        const formData = new FormData();
+        //const newFiles = [];
+        //const allPdfs = await getAllPdfs();
+
+        setUploading(true);
+
+        
+
+        files.forEach((file) => {
             formData.append('pdf_list', file);
             formData.append('doc_ids', file.name);
         });
@@ -134,7 +232,7 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
             console.log(`${key}: ${value}`);
         }
 
-        setUploading(true);
+        //setUploading(true);
 
         try {
             const response = await fetch('http://127.0.0.1:8000/add_embeddings/', { // Replace with your backend URL
@@ -147,26 +245,26 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
             if (response.ok) {
                 const data = await response.json();
                 console.log('Success:', data.message);
-                newFiles.forEach(file => {
+                files.forEach(file => {
                     setUploadStatus(prev => ({ ...prev, [file.name]: 'completed' }));
                 });
             } else {
                 const errorData = await response.json();
                 console.error('Error:', errorData.message);
-                newFiles.forEach(file => {
+                files.forEach(file => {
                     setUploadStatus(prev => ({ ...prev, [file.name]: 'failed' }));
                 });
             }
         } catch (error) {
             console.error('Error:', error.message);
-            newFiles.forEach(file => {
+            files.forEach(file => {
                 setUploadStatus(prev => ({ ...prev, [file.name]: 'failed' }));
             });
         } finally {
             // Check file size and add to database
-            if (!await checkTotalSize(files)) {
-                return;
-            }
+            // if (!await checkTotalSize(files)) {
+            //     return;
+            // }
             setUploading(false);
             onFileChange();
         }
@@ -175,8 +273,23 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
     const handleRemovePdf = (id) => {
         const pdf = pdfList.find((pdf) => pdf.id === id);
         if (pdf) {
-            deletePdfById(id);
+            //deletePdfById(id);
             onPdfRemove(id);
+
+
+            //remove pdf size from total size
+            let pdfsTotalSize = parseInt(localStorage.getItem('pdfsTotalSize'), 10);
+            console.log('pdfsTotalSize: ', pdfsTotalSize);
+            console.log(pdf);
+            console.log('pdf size: ', pdf.file.size);
+
+            pdfsTotalSize -= pdf.file.size;
+
+            localStorage.setItem('pdfsTotalSize', pdfsTotalSize.toString());
+
+            // Update hashList after removing PDF
+            setHashList(prevHashList => prevHashList.filter(hash => hash !== pdf.hash));
+
             setUploadStatus(prev => {
                 const updatedStatus = { ...prev };
                 delete updatedStatus[pdf.name];
@@ -184,6 +297,44 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
             });
         }
     };
+
+    const handleDeleteAll = async () => {
+
+        if (!userLoggedIn) {
+            alert('You are not authenticated. Please sign in to upload PDFs.');
+            console.error('User not authenticated');
+            return;
+        }
+
+        try{
+            
+            // Call delete_embeddings route after signing out
+            const response = await fetch('http://127.0.0.1:8000/delete_embeddings/', {
+                method: 'DELETE',
+                credentials: 'include',
+                mode: 'cors',
+                    // Add any headers or body data if required
+            });
+        
+            if (response.ok) {
+                await clearDatabase(); // Clear the IndexedDB database
+                localStorage.removeItem('selectedPdfs');
+                localStorage.removeItem('pdfsTotalSize');
+                localStorage.removeItem('plotData');
+                localStorage.removeItem('llm-response');
+                localStorage.removeItem('topicData');
+                console.log("Embeddings deleted successfully");
+            } else {
+                console.error("Failed to delete embeddings:", response.statusText);
+            }
+        } catch (error) {
+            console.error("Error signing out:", error);
+        } finally {
+            setUploadStatus({});
+            setHashList([]);
+            onFileChange();
+        }
+    }
 
     return (
         <div className="upload-pdfs">
@@ -195,28 +346,34 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
             >
-                <p>Drag & Drop files here</p>
-                <p>Limit 200MB in total</p>
-                <p>Only .pdf accepted</p>
+                <div className='upload-text-container'>
+                    <div className="upload-icon"><IoMdCloudUpload size={30}/></div>
+                    <div className='upload-text'>
+                        <h4>Drag & Drop files here</h4>
+                        <p>Limit: 200MB in total!</p>
+                    </div>
+                </div>
 
-                <input
-                    type="file"
-                    multiple
-                    accept="application/pdf"
-                    id="file-input"
-                    onChange={handleFileInputChange}
-                    style={{ display: 'none' }}
-                />
-                <label className="file-input-label" htmlFor="file-input">
-                    Browse
-                </label>
+                <div className='browse-button-container'>
+                    <input
+                        type="file"
+                        multiple
+                        accept="application/pdf"
+                        id="file-input"
+                        onChange={handleFileInputChange}
+                        style={{ display: 'none' }}
+                    />
+                    <label className="file-input-label" htmlFor="file-input">
+                        Browse
+                    </label>
+                </div>
             </div>
 
             <div className="uploaded-files">
-                {pdfList.length === 0 && <p>No PDFs uploaded yet</p>}
+                {pdfList.length === 0 && <h1>No PDFs uploaded yet</h1>}
                 {pdfList.length > 0 && !uploading && (
                     <>
-                        <p>Uploaded PDFs:</p>
+                        <h1 className='uploaded-pdf-text'>Uploaded PDFs:</h1>
                         <div className="pdf-list">
                             <ul>
                                 {pdfList.map((pdf) => (
@@ -233,21 +390,30 @@ function Upload({ loading, pdfList, onFileChange, onCheckboxChange, onPdfRemove 
                                             onClick={() => handleRemovePdf(pdf.id)}
                                             disabled={loading}
                                         >
-                                            X
+                                            <IoMdClose size={13}/>
                                         </button>
                                     </li>
                                 ))}
                             </ul>
+                        </div>
+                        <div className="delete-button-container">
+                            <button
+                                className="delete-button"
+                                onClick={handleDeleteAll}
+                                disabled={uploading}
+                            >
+                                Delete All
+                            </button>
                         </div>
                     </>
                 )}
             </div>
 
             {uploading && (
-                <div className="upload-progress">
+                <div className="pdf-list">
                     {Object.keys(uploadStatus).map((fileName) => (
                         <div key={fileName} className="upload-progress-item">
-                            <p>{fileName}</p>
+                            <div className='filename'><p>{fileName}</p></div>
                             {uploadStatus[fileName] === 'loading' ? (
                                 <div className="loading-animation"></div>
                             ) : (

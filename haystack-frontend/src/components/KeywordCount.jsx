@@ -1,17 +1,46 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './KeywordCount.css';
 import { getPdfById } from '../utils/indexedDB';
 import Loading from './Loading';
 
-function KeywordCounting({ selectedPdfs }) {
-    const [keyword, setKeyword] = useState('');
+function KeywordCounting({keyword, setKeyword}) {
+    // const [keyword, setKeyword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [apiResponse, setApiResponse] = useState(null);
     const [error, setError] = useState(null);
+    const [submittedKeyword, setSubmittedKeyword] = useState('');
+
+    useEffect(() => {
+        setSubmittedKeyword(keyword);
+        const keywordResults = JSON.parse(localStorage.getItem('keywordResults'));
+        if (keywordResults) {
+            setApiResponse(keywordResults);
+        }
+        else{
+            setApiResponse(null);
+        }
+    }, []);
+
 
     const handleSubmit = async (e) => {
+        setApiResponse(null);
         e.preventDefault();
+        setSubmittedKeyword(keyword);
         setIsLoading(true);
+        const selectedPdfs = JSON.parse(localStorage.getItem('selectedPdfs'));
+
+        if (!selectedPdfs || selectedPdfs.length === 0) {
+            alert('Please select PDFs');
+            setIsLoading(false);
+            return;
+        }
+
+        if (keyword === ''){
+            alert('Please type your keyword');
+            setIsLoading(false);
+            return;
+        }
+        
 
         // Filter selected PDFs
         //const selectedPdfs = pdfList.filter(pdf => pdf.selected);
@@ -25,7 +54,17 @@ function KeywordCounting({ selectedPdfs }) {
 
         for (let pdfID of selectedPdfs) {
             const pdf = await getPdfById(pdfID);
-            formData.append('files', pdf.file);
+            if (pdf) {
+                formData.append('files', pdf.file);
+            }
+            else{
+                console.log('PDF not found in indexedDB');
+                const filteredPdfs = selectedPdfs.filter(pdf => pdf !== pdfID);
+                localStorage.setItem('selectedPdfs', JSON.stringify(filteredPdfs));
+                setIsLoading(false);
+                setError('A PDF was not found! Try again.');
+                return;
+            }
         }
 
         console.log('Form Data: ', formData);
@@ -45,6 +84,7 @@ function KeywordCounting({ selectedPdfs }) {
             const data = await response.json();
             if (data.status === 'success') {
                 setApiResponse(data);
+                localStorage.setItem('keywordResults', JSON.stringify(data));
                 setError(null); // Reset error state if successful
             } else {
                 throw new Error(data.message || 'Failed to fetch keyword count');
@@ -67,6 +107,8 @@ function KeywordCounting({ selectedPdfs }) {
         setKeyword('');
         setApiResponse(null);
         setError(null);
+        setSubmittedKeyword('');
+        localStorage.removeItem('keywordResults');
     };
 
     const downloadResults = () => {
@@ -85,7 +127,7 @@ function KeywordCounting({ selectedPdfs }) {
     };
     return (
         <div className="keyword-counting">
-            <h2>Get keyword counting for your PDFs!</h2>
+            <h2>Keyword Frequency for your PDFs!</h2>
             <form className="keyword-form">
                 <textarea
                     value={keyword}
@@ -93,31 +135,29 @@ function KeywordCounting({ selectedPdfs }) {
                     placeholder="Type your keyword here"
                     className="keyword-input"
                     rows={1}
-                    disabled={isLoading || !(selectedPdfs.length > 0)} // Disable textarea when loading or no PDFs selected
+                    disabled={isLoading} // Disable textarea when loading or no PDFs selected
                 />
             </form>
             {isLoading ? (
                 <Loading />
             ) : (
-                <button type="submit" className="keyword-submit" onClick={handleSubmit} disabled={!(selectedPdfs.length > 0)}>
+                <button type="submit" className="keyword-submit" onClick={handleSubmit}>
                     Submit
                 </button>
             )}
             {error && <p className="error-message">{error}</p>}
             {apiResponse && (
                 <div className="keyword-output">
-                    <p>{`The keyword "${keyword}" appeared ${apiResponse.total} times.`}</p>
-                    <button className="download-button" onClick={downloadResults}>
+                    <p>{`The keyword "${submittedKeyword}" appeared ${apiResponse.total} times.`}</p>
+                    <button className="keyword-submit" onClick={downloadResults}>
                         Download Results (JSON)
+                    </button>
+                    <button className="keyword-submit" onClick={handleNewSearch}>
+                        New Search
                     </button>
                 </div>
             )}
             {/* Render a button to clear results */}
-            {apiResponse && (
-                <button className="new-search-button" onClick={handleNewSearch}>
-                    New Search
-                </button>
-            )}
         </div>
     );
 }

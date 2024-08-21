@@ -3,10 +3,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { signOutWrapper, verifyLogin } from '../firebase/auth';
 import './Header.css'; 
+import { clearDatabase } from '../utils/indexedDB';
 
 function Header() {
 
-    const [isLogged, setIsLogged] = useState(null);
+    //const [isLogged, setIsLogged] = useState(null);
     const navigate = useNavigate();
 
     // useEffect( () =>{
@@ -25,15 +26,41 @@ function Header() {
     //const isLogged = verifyLogin();
     // console.log(isLogged);
 
-    const handleLogout = () => {
-        signOutWrapper().then(() => {
-            window.localStorage.removeItem("isLogged");
-            navigate("/signin"); // Redirect to sign-in page after sign out
-        }).catch((error) => {
-            console.error("Error signing out:", error);
-        });
-    }
+    // const handleLogout = async() => {
+    //     signOutWrapper().then(() => {
+    //         //window.localStorage.removeItem("isLogged");
+    //         navigate("/signin"); // Redirect to sign-in page after sign out
+    //     }).catch((error) => {
+    //         console.error("Error signing out:", error);
+    //     });
+    // }
+    const handleLogout = async () => {
+        try {
+            await signOutWrapper();
+            await clearDatabase(); // Clear the IndexedDB database after signing out
+            localStorage.removeItem('selectedPdfs');
+            localStorage.removeItem('pdfsTotalSize');
 
+            // Call delete_embeddings route after signing out
+            const response = await fetch('http://127.0.0.1:8000/delete_embeddings/', {
+                method: 'DELETE',
+                credentials: 'include',
+                mode: 'cors',
+                // Add any headers or body data if required
+            });
+    
+            if (response.ok) {
+                console.log("Embeddings deleted successfully");
+            } else {
+                console.error("Failed to delete embeddings:", response.statusText);
+            }
+    
+            navigate("/signin"); // Redirect to sign-in page after sign out
+        } catch (error) {
+            console.error("Error signing out:", error);
+        }
+    };
+    
     // if (isLogged === null) {
     //     return (<div>Loading...</div>); //or loading indicator
     // }
@@ -45,14 +72,14 @@ function Header() {
                         <img src='../H-logo.png' width={40} height={40} />
                     </Link>
                     <p className='navButtons'>
-                        <Link className='button-container' to='/'>
+                        {/* <Link className='button-container' to='/'>
                             FAQ
-                        </Link>
-                        {userLoggedIn && ( //isLogged && (
+                        </Link> */}
+                        {/* {userLoggedIn && ( //isLogged && (
                             <Link className='button-container' to='/getinsights'>
                                 Insights
                             </Link>
-                        )}
+                        )} */}
                     </p>
                 </div>
                 {

@@ -11,7 +11,7 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }){
-    const [currentUser, setCurrentUser] = useState(null);
+    //const [currentUser, setCurrentUser] = useState(null);
     const [userLoggedIn, setUserLoggedIn] = useState(false);
     const [loading, setLoading] = useState(true);
 
@@ -45,14 +45,14 @@ export function AuthProvider({ children }){
     }
 
     const value = {
-        currentUser,
+        //currentUser,
         userLoggedIn,
         loading
     };
 
     return (
         <AuthContext.Provider value={value}>
-            {!loading && children}
+            { !loading && children }
         </AuthContext.Provider>
     );
 };
